@@ -57,7 +57,7 @@
 
 ;; enable/disable modes.
 (ido-mode t)
-(menu-bar-mode nil)
+(menu-bar-mode 0)
 (show-paren-mode t)
 (display-time-mode t)
 (delete-selection-mode)
@@ -66,7 +66,11 @@
 (if (functionp 'scroll-bar-mode) (scroll-bar-mode 0))
 
 ;; looks and stuff
-(set-default-font "Bitstream Vera Sans Mono-14")
+(require 'color-theme)
+(eval-after-load "color-theme"
+  '(progn
+     (color-theme-initialize)
+     (color-theme-arjen)))
 
 ;; define functions for my hooks
 (when (string= system-type "windows-nt")
@@ -77,7 +81,8 @@
   (setq c-basic-offset 2)
   (setq indent-tabs-mode nil)
   (local-set-key (kbd "M-i") 'astyle-buffer)
-  (add-hook 'before-save-hook 'whitespace-cleanup nil t))
+
+(add-hook 'before-save-hook 'whitespace-cleanup nil t))
 
 (defun my-python-settings()
   (setq indent-tabs-mode nil)
@@ -103,7 +108,7 @@
     (progn
       (shell-command-on-region
        (point-min) (point-max)
-       (format "python %s/PythonTidy.py" my-elisp-dir) t t))
+       (format "python %s/python-tidy.py" my-elisp-dir) t t))
     (goto-char position)))
 
 ;; add hooks
@@ -115,7 +120,6 @@
 
 ;;load extra packages
 (require 'p4)
-(require 'ajd-org)
 (require 'uniquify)
 (require 'yaml-mode)
 (require 'protobuf-mode)
@@ -128,3 +132,16 @@
     (setq erlang-root-dir (getenv "ERLANG_ROOT"))
     (setq exec-path (cons (concat (getenv "ERLANG_ROOT") "/bin") exec-path))
     (require 'erlang-start)))
+
+;; website
+(setq org-publish-project-alist
+      '(("www"
+         :base-directory "~/home/web/pages"
+         :publishing-directory "~/home/web/html"
+         :base-extension "org"
+         :recursive t
+         :section-numbers nil
+         :table-of-contents nil
+         :style-include-default nil
+         :style-include-scripts nil
+         :org-publish-use-timestamps-flag nil)))

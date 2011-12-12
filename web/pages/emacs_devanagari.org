@@ -1,0 +1,52 @@
+#+DATE:      27 May 2011
+Writing in हिन्दी
+
+I'm losing touch of the language I love the most: Hindi. Not the Hindi I converse in but the Hindi I
+used to read and write. I have hardly read any of it in the past few years and I haven't written any
+of it in ages. All I write these days is on a computer and is invariably in English. The days of me,
+writing by hand, are gone for good and the only chance of me staying in touch with my mother-tongue
+in its written form, is to start writing in it, on the computer. This note is about how I do that in
+emacs.
+
+There are tons of other ways do this (which do not involve emacs) but most of them do not interest
+me (/because/ they do not involve emacs.) Emacs comes with built in support for input, display and
+storage of non-English character sets. For Devanagari, in particular, it supports multiple input
+methods. You can choose to type using a proper Hindi key-map (the kind used by the typists one meets
+in Gandhi Hall Indore, who, for a surprisingly low fee, will gladly type a शपथ-पत्र for you stating
+that you landed on the moon before the Americans did.) Or, you can use a transliteration scheme,
+like [[http://www.aczoom.com/itrans/#itransencoding][ITRANS]].
+
+All I need in my [[https://github.com/aldrin/ajd/blob/master/dotfiles/.emacs][.emacs]] is:
+
+#+BEGIN_SRC elisp
+(setq default-input-method "devanagari-itrans")
+(add-to-list 'auto-coding-alist '("\\.org" . utf-8))
+#+END_SRC
+
+The first chooses an input method and the second ensures that all of my writing (which is mostly in
+[[http://orgmode.org][org]] files) gets encoded as =utf-8=. Neither of these settings is required, they only serve as
+default answers to questions that emacs pops up when I use something outside of English. Now, I can
+toggle between languages by a single keystroke (=C-\=). So, I can start a sentence in English and बीच मे jump into हिन्दी anytime I  feel like. 
+
+And that's about it, but before I end, I must dazzle you with a display of my transliteration
+skills. For that, I have chosen to key in [[http://google.saregama.com/music/pages/listen_popup%3Fmode%3Dlisten_popup&query%3DINH100476260][the song]] that started it all today. The reason why I wrote
+this note. Here it goes:
+
+#+BEGIN_EXAMPLE
+अवधूता, युगन युगन हम योगी...
+आवैना जाय, मिटैना कबहूं, सबद अनाहत भोगी 
+
+सब ही ठौर जमात हमरी, सब ही ठौर पर मेला
+हम सब माय, सब हैं हम माय, हम है बहुरी अकेला 
+
+हम ही सिद्ध, समाधि हम ही, हम मौनी हम बोले
+रूप सरूप अरूप दिखाके, हम ही में हम तो खेलें 
+
+कहे कबीरा जो, सुनो भाई साधो, नाही-न-कोई इच्छा
+अपनी मढ़ी में आप मैं डोलूं, खेलू सहज स्वइच्छा ।
+#+END_EXAMPLE
+
+This song, more than any other, fills me with a peaceful solitude.  I do not know for sure, if it is
+the words of Kabir or the music of the inimitable Kumar Gandharva that does it, but whatever does,
+overwhelms me. Finally, for whatever it is worth, I must recommend Kumar Gandharva to
+everyone. Listen to whatever you can [[http://www.youtube.com/results%3Fsearch_query%3Dkumar%2Bgandharva][get of him]], the man was a genius. पूर्ण विराम।

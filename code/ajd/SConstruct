@@ -1,0 +1,7 @@
+from buildEnvironment import GetVariantDir
+from os import listdir
+from os.path import isdir, join
+excluded = ['docs']
+for project in [name for name in listdir(".") if isdir(name) and name not in excluded]:
+    variant=GetVariantDir(project)
+    SConscript(dirs=project, variant_dir=variant, duplicate=0)
