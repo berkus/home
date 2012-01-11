@@ -68,13 +68,6 @@
 (if (functionp 'tool-bar-mode) (tool-bar-mode 0))
 (if (functionp 'scroll-bar-mode) (scroll-bar-mode 0))
 
-;; looks and stuff
-;; (require 'color-theme)
-;; (eval-after-load "color-theme"
-;;   '(progn
-;;      (color-theme-initialize)
-;;      (color-theme-arjen)))
-
 ;; define functions for my hooks
 (when (string= system-type "windows-nt")
   (add-hook 'window-setup-hook (lambda () (w32-send-sys-command 61488))))
