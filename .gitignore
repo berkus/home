@@ -1,4 +1,4 @@
 *.pyc
 *.elc
-Sandbox/*
+sandbox/*
 .DS_Store

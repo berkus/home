@@ -11,6 +11,7 @@
 (global-set-key (kbd "M-p") 'org-publish-current-project)
 
 ;; global mode variable customizations
+(epa-file-enable)
 (setq scroll-step 1)
 (setq iswitchb-mode t)
 (setq icomplete-mode t)
@@ -21,7 +22,6 @@
 (setq column-number-mode t)
 (setq transient-mark-mode t)
 (setq auto-save-default nil)
-(setq vc-handled-backends nil)
 (setq-default fill-column 100)
 (setq global-font-lock-mode t)
 (setq ediff-diff-options "-w")
@@ -30,8 +30,10 @@
 (setq initial-scratch-message nil)
 (setq normal-erase-is-backspace t)
 (setq-default indent-tabs-mode nil)
+(setq org-default-notes-file "~/.plan")
 (setq frame-title-format "emacs [ %b ]")
 (setq user-full-name "aldrin j d'souza")
+(setq org-agenda-files (quote ("~/.plan")))
 (setq-default ispell-program-name "aspell")
 (setq default-input-method "devanagari-itrans")
 (setq display-time-format "[%X] -- %d %B -- (%A)")
@@ -40,6 +42,7 @@
 (setq uniquify-buffer-name-style (quote post-forward))
 (setq ring-bell-function (lambda nil (message "*fish*")))
 (setq my-elisp-dir (format "%s/%s" (file-name-directory load-file-name) ".elisp"))
+
 ;; load-path
 (setq load-path (cons my-elisp-dir load-path))
 
@@ -66,11 +69,11 @@
 (if (functionp 'scroll-bar-mode) (scroll-bar-mode 0))
 
 ;; looks and stuff
-(require 'color-theme)
-(eval-after-load "color-theme"
-  '(progn
-     (color-theme-initialize)
-     (color-theme-arjen)))
+;; (require 'color-theme)
+;; (eval-after-load "color-theme"
+;;   '(progn
+;;      (color-theme-initialize)
+;;      (color-theme-arjen)))
 
 ;; define functions for my hooks
 (when (string= system-type "windows-nt")
@@ -120,6 +123,7 @@
 
 ;;load extra packages
 (require 'p4)
+(require 'epa)
 (require 'uniquify)
 (require 'yaml-mode)
 (require 'protobuf-mode)
