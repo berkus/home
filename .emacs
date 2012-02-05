@@ -121,6 +121,7 @@
 (require 'yaml-mode)
 (require 'protobuf-mode)
 (require 'powershell-mode)
+(require 'graphviz-dot-mode)
 
 ;; erlang settings
 (when (and (getenv "ERLANG_ROOT") (getenv "ERLANG_EMACS"))
