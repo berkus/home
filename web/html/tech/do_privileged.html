@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>using doPrivileged</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="title" content="using doPrivileged"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="19 May 2010"/>
+<meta name="author" content="aldrin j d'souza"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+
+
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div id="content">
+<h1 class="title">using doPrivileged</h1>
+
+
+<p>
+the <code>doPrivileged</code> api enables a few usage scenarios which wouldn't have
+been possible in its absence.  its quite neatly <a href="http://java.sun.com/j2se/1.4.2/docs/guide/security/doprivileged.html">documented</a>, still, it took
+me a while to really get a hang of its usage. this note shares my
+understanding on the usage and the capabilities of this neat little
+extension to the java access control framework.
+</p>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">getting started</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>consider the task of implementing the following protected resource:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af0000;">// </span><span style="color: #af0000;">code-base 'file:///code/resource'</span>
+<span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">Resource</span> {
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">read</span>() {
+    <span style="color: #008700;">RuntimePermission</span> <span style="color: #af5f00;">permission</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">RuntimePermission</span>(<span style="color: #87005f;">"resource.read"</span>);
+    AccessController.checkPermission(permission);
+    System.out.println(<span style="color: #87005f;">"read"</span>); <span style="color: #af0000;">// </span><span style="color: #af0000;">actual read implementation </span>
+  }
+
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">write</span>() {
+    <span style="color: #008700;">RuntimePermission</span> <span style="color: #af5f00;">permission</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">RuntimePermission</span>(<span style="color: #87005f;">"resource.write"</span>);
+    AccessController.checkPermission(permission);
+    System.out.println(<span style="color: #87005f;">"write"</span>); <span style="color: #af0000;">// </span><span style="color: #af0000;">actual write implementation</span>
+  }
+}
+</pre>
+
+
+
+<p>
+the resource has two operations which check for the necessary permission
+before executing the the actual implementation. this allows us to control
+access to the operations even in cases when the resource is used from
+arbitrary user code. for example, we can implement read-only access to the
+resource by enforcing the following policy (assuming that the resource and
+user classes belong to separate code-bases)
+</p>
+
+
+
+<pre class="example">grant codebase "file:///code/resource" {
+ permission java.lang.RuntimePermission "resource.*";
+};
+grant codebase "file:///code/user" {
+ permission java.lang.RuntimePermission "resource.read";
+};
+</pre>
+
+
+<p>
+such a strict policy might limit a few useful use cases. for example, it
+might be useful to allow the user code to write to the resource, if we can
+program reliable tests that it writes responsibly without corrupting the
+resource. one possibly way to implement such a system is to introduce a
+wrapper between the user and the resource which intercept all the writes
+and block the illegal/harmful ones. something like the following:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af0000;">// </span><span style="color: #af0000;">code-base 'file:///code/resource'</span>
+<span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">ResourceWrapper</span> {
+  <span style="color: #af00ff;">private</span> <span style="color: #008700;">Resource</span> <span style="color: #af5f00;">resource</span>;
+
+  <span style="color: #af00ff;">public</span> ResourceWrapper(<span style="color: #008700;">Resource</span> <span style="color: #af5f00;">r</span>){ resource = r; }
+
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">write</span>() {
+    <span style="color: #af00ff;">if</span>(writeIsBad) <span style="color: #af0000;">// </span><span style="color: #af0000;">filter out the bad stuff.</span>
+     <span style="color: #af00ff;">return</span>; 
+
+    resource.write();
+  }
+}
+</pre>
+
+
+<p>
+as we own and control the wrapper code we grant it all permissions over the
+resource, hoping that well behaved user code will be able to write to the
+resource by invoking the wrapper instead of the resource directly.
+</p>
+<p>
+the trouble is that the access controller, by default, requires that the
+needed permission is granted to <i>every</i> protection domain on the call
+stack. <i>we</i> know that wrapper is trusted and ensures that the writes it
+lets through are harmless regardless of where they orignated from, but the
+access controller doesn't. what we need is a mechanism by which a trusted
+protection domain can confer its own permissions to a call originating from
+an untrusted domain. and that, is exactly, what the <code>doPrivileged</code> api is.
+</p>
+<p>
+all that a <code>doPrivileged</code> call does is mark the protection domain which
+invoked it as <i>privileged</i>. if a <i>privileged</i> domain on the stack has the
+required permission, the call succeeds regardless of whether or not the
+domains below it on the call-stack have the permission. so if our wrapper
+is modified as follows:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af0000;">// </span><span style="color: #af0000;">code-base 'file:///code/resource'</span>
+<span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">ResourceWrapper</span> {
+  <span style="color: #af0000;">//</span><span style="color: #af0000;">...</span>
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">write</span>() {
+    <span style="color: #af00ff;">if</span>(writeIsBad) <span style="color: #af0000;">// </span><span style="color: #af0000;">filter out the bad stuff.</span>
+      <span style="color: #af00ff;">return</span>; 
+
+    AccessController.doPrivileged(<span style="color: #af00ff;">new</span> <span style="color: #008700;">PrivilegedAction</span>() {
+        <span style="color: #af00ff;">public</span> <span style="color: #008700;">Object</span> <span style="color: #0000ff;">run</span>() {
+          resource.write();
+          <span style="color: #af00ff;">return</span> <span style="color: #008787;">null</span>;
+        }
+      });
+  }
+}
+</pre>
+
+
+<p>
+the users of the resource can invoke regulated writes as follows:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af0000;">// </span><span style="color: #af0000;">code-base 'file:///code/user'</span>
+<span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">User</span> {
+  <span style="color: #af00ff;">public</span> <span style="color: #af00ff;">static</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">main</span>(<span style="color: #008700;">String</span> <span style="color: #af5f00;">args</span>[]) {
+    <span style="color: #008700;">Resource</span> <span style="color: #af5f00;">resource</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">Resource</span>();
+    <span style="color: #008700;">ResourceWrapper</span> <span style="color: #af5f00;">watchfulEyes</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">ResourceWrapper</span>(resource);
+    <span style="color: #af0000;">// </span><span style="color: #af0000;">can operate directly</span>
+    resource.read(); <span style="color: #af0000;">// </span><span style="color: #af0000;">we have the permission ourself.</span>
+    <span style="color: #af0000;">// </span><span style="color: #af0000;">operate in a sandbox</span>
+    watchfulEyes.write(); <span style="color: #af0000;">// </span><span style="color: #af0000;">we don't have the permission ourselves.</span>
+  }
+}
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">limiting the permissions</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>note that when we used the privileged block to enable the wrapper
+permissions to an untrusted invoker, we enabled <i>all</i> of them for the scope
+of that call. this might be a problem, for example, consider if our
+resource was implemented as follows:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">Resource</span> {
+  <span style="color: #af0000;">//</span><span style="color: #af0000;">...</span>
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">write</span>() {
+    <span style="color: #008700;">RuntimePermission</span> <span style="color: #af5f00;">permission</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">RuntimePermission</span>(<span style="color: #87005f;">"resource.write"</span>);
+    AccessController.checkPermission(permission);
+
+    <span style="color: #af00ff;">if</span>(!existsAlready) <span style="color: #af0000;">// </span><span style="color: #af0000;">the resource does not exist</span>
+      create(); <span style="color: #af0000;">// </span><span style="color: #af0000;">create it first.</span>
+
+    System.out.println(<span style="color: #87005f;">"write"</span>); <span style="color: #af0000;">// </span><span style="color: #af0000;">do the actual write.</span>
+  }
+
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">create</span>() {
+    <span style="color: #008700;">RuntimePermission</span> <span style="color: #af5f00;">permission</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">RuntimePermission</span>(<span style="color: #87005f;">"resource.create"</span>);
+    AccessController.checkPermission(permission);
+    System.out.println(<span style="color: #87005f;">"create"</span>); <span style="color: #af0000;">// </span><span style="color: #af0000;">do the actual 'create'.</span>
+  }
+}
+</pre>
+
+
+<p>
+in this version, if a write is invoked on a resource which does not exist
+already, the implementation creates it first.  if our intention was only to
+allow the user code to write to existing resources but not to give them the
+ability to create new ones, our existing wrapper won't be able to enforce
+it. in invoking the privileged call it does not specify how many of its own
+permissions to enable for the user-code, and thus ends up giving the
+<code>create</code> permission too.  
+</p>
+<p>
+to fix this behavior we need a mechanism to specify a subset of permissions
+which the trusted protection domain wishes to confer for a privileged
+call. and that is achieved by specifying an <code>AccessControlContext</code>
+parameter in the privileged call.  consider the following wrapper
+implementation:
+</p>
+
+
+
+<pre class="src src-java"><span style="color: #af0000;">// </span><span style="color: #af0000;">code-base 'file:///code/resource'</span>
+<span style="color: #af00ff;">public</span> <span style="color: #af00ff;">class</span> <span style="color: #008700;">ResourceWrapper</span> {
+  <span style="color: #af0000;">//</span><span style="color: #af0000;">...</span>
+  <span style="color: #af00ff;">public</span> <span style="color: #008700;">void</span> <span style="color: #0000ff;">write</span>() {
+    <span style="color: #af0000;">// </span><span style="color: #af0000;">specify a subset of permission which need to be enabled</span>
+    <span style="color: #008700;">Permissions</span> <span style="color: #af5f00;">subset</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">Permissions</span>();
+    subset.add(<span style="color: #af00ff;">new</span> <span style="color: #008700;">RuntimePermission</span>(<span style="color: #87005f;">"resource.write"</span>));
+    <span style="color: #008700;">AccessControlContext</span> <span style="color: #af5f00;">context</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">AccessControlContext</span>
+      ({ <span style="color: #af00ff;">new</span> <span style="color: #008700;">ProtectionDomain</span>(<span style="color: #008787;">null</span>,subset) });
+    AccessController.doPrivileged(<span style="color: #af00ff;">new</span> <span style="color: #008700;">PrivilegedAction</span>() {
+        <span style="color: #af00ff;">public</span> <span style="color: #008700;">Object</span> <span style="color: #0000ff;">run</span>() {
+          resource.write();
+          <span style="color: #af00ff;">return</span> <span style="color: #008787;">null</span>;
+        }
+      }, context);
+  }
+</pre>
+
+
+<p>
+now, the wrapper explicitly specifies that it only wants to enable the
+write permission for its caller. this way, user code which writes to
+existing resources will work as before but attempts to use the wrapper code
+as short-cut to create new resources would fail.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">summary</h2>
+<div class="outline-text-2" id="text-3">
+
+<p>to summarize, the <code>doPrivileged</code> api provides a handy mechanism for trusted
+code to enable a subset of its permissions for its invokers.
+</p></div>
+</div>
+</div>
+
+<div id="postamble">
+<p class="date">Date: 19 May 2010</p>
+<p class="author">Author: aldrin j d'souza</p>
+<p class="creator">Org version 7.8.03 with Emacs version 23</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+
+</div>
+</body>
+</html>

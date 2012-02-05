@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Why <code>enable_shared_from_this</code>?</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="title" content="Why <code>enable_shared_from_this</code>?"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="13 August 2011"/>
+<meta name="author" content="aldrin j d'souza"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+
+
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div id="content">
+<h1 class="title">Why <code>enable_shared_from_this</code>?</h1>
+
+
+<p>
+The <a href="http://www.boost.org/doc/libs/">boost</a> libraries are simple to use but the neatness of their abstractions hides a lot of wizardry
+that lies beneath. To use them effectively, you don't usually need to look beneath their covers,
+but, a little insight, as the <a href="http://www.tsa.gov/">TSA</a> will have you believe, goes a long way in understanding the
+intentions. This note is about one such neat abstraction: <a href="http://www.boost.org/doc/libs/1_47_0/libs/smart_ptr/enable_shared_from_this.html">enable_shared_from_this</a>.
+</p>
+<p>
+Allow me to start with a brief refresher of smart pointers (in boost, TR1 and C++11.)
+</p>
+<p>
+Consider the following tests (also <a href="https://github.com/aldrin/ajd/blob/master/code/ajd/explore/test/src/shared_ptr_test.cc">here</a>):
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #0000ff;">TEST</span>(SmartPtrs, BasicUsage)
+{
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">p</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">int</span>);
+    {
+        <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">q</span>(p);
+        ASSERT_FALSE(p.unique() || q.unique());
+        ASSERT_EQ(2, q.use_count());
+    }
+    ASSERT_TRUE(p.unique());
+}
+
+<span style="color: #0000ff;">TEST</span>(SmartPtrsDeathTest, BadUsageDoubleDelete)
+{
+    ASSERT_DEATH(
+    {
+        <span style="color: #008700;">int</span> *<span style="color: #af5f00;">i</span> = <span style="color: #af00ff;">new</span> <span style="color: #008700;">int</span>;
+        <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">p</span>(i);
+        {
+            <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">q</span>(i);
+        }
+    }, <span style="color: #87005f;">".*"</span>);
+}
+</pre>
+
+
+<p>
+The first shows the expected usage of <code>shared_ptr</code> and second serves as a warning against wrapping
+the same raw pointer into more than one <code>shared_ptr</code>. Both <code>p</code> and <code>q</code> consider themselves as the
+unique owners of the wrapped pointer. Consequently, they both deallocate it while going out of
+scope, causing a double free and a crash. This is because a <code>shared_ptr</code> is not <i>intrusive</i> i.e. the
+reference count is not stored in the pointer being wrapped, instead, it is stored in the
+<code>shared_ptr</code> instance. It is thus, the user's responsibility, to ensure that multiple ownership
+situations are prevented. Now consider this:
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #0000ff;">TEST</span>(SmartPtrs, WeakPtrUsage)
+{
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">p</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">int</span>);
+    <span style="color: #008700;">weak_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">w</span>(p);
+    {
+        ASSERT_EQ(1, p.use_count());
+        <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">int</span>&gt; <span style="color: #af5f00;">q</span> = w.lock();
+        ASSERT_EQ(2, q.use_count());
+    }
+    ASSERT_EQ(1, w.use_count());
+    p.reset();
+    ASSERT_TRUE(w.expired());
+}
+</pre>
+
+
+<p>
+This test confirms the role of a <code>weak_ptr</code> as a side-kick of another <code>shared_ptr</code> instance. A
+<code>weak_ptr</code> does not claim ownership to the underlying pointer, it is just a rain-check we keep to
+claim ownership in the future, if we need to. You can't access the underlying pointer directly from
+a <code>weak_ptr</code>, you need to <code>lock</code> it first, and in doing so create a <code>shared_ptr</code> that shares
+ownership with the original <code>share_ptr</code>. All this is very nice and dandy, but the real reason why
+<code>weak_ptr</code> exists in the standard library is because it is critical in breaking cyclic
+references. And that brings us to the point of this note.
+</p>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">The Problem</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>Consider the task of writing two classes: <code>Student</code> and <code>Course</code>, as shown below:
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #af00ff;">class</span> <span style="color: #008700;">Student</span>;
+
+<span style="color: #af00ff;">class</span> <span style="color: #008700;">Course</span>
+{
+<span style="color: #af00ff;">public</span>:
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">enroll</span>(<span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">s</span>)
+    {
+        register_.push_back(s);
+    }
+<span style="color: #af00ff;">private</span>:
+    vector&lt;shared_ptr&lt;Student&gt;&gt; register_;
+};
+
+<span style="color: #af00ff;">class</span> <span style="color: #008700;">Student</span>
+{
+<span style="color: #af00ff;">public</span>:
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">offer</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">if</span> (interested_in(c))
+        {
+            c.enroll(<span style="color: #af0000;">/*</span><span style="color: #af0000;">this*/</span>);
+        }
+    }
+<span style="color: #af00ff;">private</span>:
+    <span style="color: #008700;">bool</span> <span style="color: #0000ff;">interested_in</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">return</span> <span style="color: #008787;">true</span>;
+    }
+};
+
+</pre>
+
+
+<p>
+A <code>Course</code> holds a collection of <code>Student</code> instances that <code>enroll</code> into it. The <code>offer</code> method in
+<code>Student</code> abstracts the act of offering a course to a given student. Depending on the interests
+(abstracted by <code>interested_in</code>) the <code>Student::offer</code> implementation is expected to invoke
+<code>Course::enroll</code> with the equivalent of <code>this</code>. And there's our problem: how do we store a
+<code>shared_ptr</code> to <code>this</code> inside an instance? (Here's a <a href="http://www.boost.org/doc/libs/1_47_0/doc/html/boost_asio/example/http/server/connection.cpp"><i>real</i></a> class that has a similar need)
+</p>
+<p>
+Consider solving the problem iteratively in the sequence of tests below (also <a href="https://github.com/aldrin/ajd/blob/master/code/ajd/explore/test/src/esft_test.cc">here</a>). Here's a first
+cut of <code>Student::offer</code>
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #008700;">void</span> <span style="color: #008787;">Student</span>::<span style="color: #0000ff;">offer</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+{
+    <span style="color: #af00ff;">if</span> (interested_in(c))
+    {
+        c.enroll(<span style="color: #008700;">shared_ptr</span>&lt;Student&gt;(<span style="color: #af00ff;">this</span>));
+    }
+}
+
+<span style="color: #0000ff;">TEST</span>(StudentCourse, BadUsageDoubleDelete)
+{
+    ASSERT_DEATH(
+    {
+        <span style="color: #008700;">Course</span> <span style="color: #af5f00;">math</span>;
+        <span style="color: #008700;">shared_ptr</span>&lt;Student&gt; <span style="color: #af5f00;">s</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">Student</span>);
+        s-&gt;offer(math);
+    }, <span style="color: #87005f;">".*"</span>);
+}
+
+</pre>
+
+
+<p>
+This is not a lot different from the other <code>BadUsageDoubleDelete</code> test we wrote earlier. It suffers
+from the same problem (multiple <code>shared_ptr</code> pointing to the same memory) and meets the same end
+(crash with a double delete.) Here's another attempt:
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #af00ff;">class</span> <span style="color: #008700;">Student</span>
+{
+<span style="color: #af00ff;">public</span>:
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">offer</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">if</span> (interested_in(c))
+        {
+            c.enroll(self_);
+        }
+    }
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">set_this</span>(<span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">self</span>)
+    {
+        self_ = self;
+    }
+<span style="color: #af00ff;">private</span>:
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">self_</span>;
+    <span style="color: #008700;">bool</span> <span style="color: #0000ff;">interested_in</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">return</span> <span style="color: #008787;">true</span>;
+    }
+};
+<span style="color: #0000ff;">TEST</span>(StudentCourse, BadUsageLeaks)
+{
+    <span style="color: #008700;">Course</span> <span style="color: #af5f00;">math</span>;
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">s</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">Student</span>);
+    s-&gt;set_this(s);
+    s-&gt;offer(math);
+    ASSERT_EQ(3, s.use_count());
+}
+
+</pre>
+
+
+<p>
+This may not crash but it isn't any better. To ensure we use the same reference count, we extend
+<code>Student</code> to include a <code>shared_ptr</code> to itself. We add a <code>set_this</code> method to record the original
+<code>shared_ptr</code> back into the instance. This gets us around the double delete, but by means of a cyclic
+reference, pushes us to the other extreme (no delete). The member <code>self_</code> adds to the reference
+count which can't be decremented automatically. We can, of course, add a <code>reset_this</code> method to do
+that, but doing so defeats the whole purpose. As the test asserts, the <code>use_count</code> is 3, and we have
+only two objects (<code>s</code> and <code>math</code>) to bring it down. Leak happens. 
+</p>
+<p>
+Let's try again.
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #af00ff;">class</span> <span style="color: #008700;">Student</span>
+{
+    <span style="color: #af0000;">// </span><span style="color: #af0000;">same as before</span>
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">offer</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">if</span> (interested_in(c))
+        {
+            c.enroll(self_.lock());
+        }
+    }
+<span style="color: #af00ff;">private</span>:
+    <span style="color: #008700;">weak_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">self_</span>;
+    <span style="color: #af0000;">// </span><span style="color: #af0000;">same as before</span>
+};
+
+<span style="color: #0000ff;">TEST</span>(StudentCourse, Works)
+{
+    <span style="color: #008700;">Course</span> <span style="color: #af5f00;">math</span>;
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">s</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">Student</span>);
+    s-&gt;set_this(s);
+    s-&gt;offer(math);
+    ASSERT_EQ(2, s.use_count());
+}
+
+</pre>
+
+
+<p>
+There's our <code>weak_ptr</code> to the rescue. All that has changed from the second attempt is the type of
+the <code>self_</code> member and we now use its <code>lock</code> method to construct a strong reference only where
+required. This ensures that we do not block a reference in the instance and don't leak. As I wrote
+earlier, this breaking of cyclic references is the very reason why we use <code>weak_ptr</code>.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">The Solution</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>Let's step back and consider the changes we made to realize our use case. We had to:
+</p>
+<ul>
+<li>Add a member <code>self_</code> to store a weak reference to <code>this</code>
+</li>
+<li>Add a new member <code>set_this</code> to record the original <code>shared_ptr</code> in <code>self_</code>
+</li>
+<li>Remember to call <code>set_this</code> after creating every <code>Student</code> instance.
+</li>
+</ul>
+
+
+<p>
+That may sound like too much work and more importantly it also pollutes the <code>Student</code> interface
+(especially the last item). Fortunately, there is a better way to do all this, and it is called
+(surprise!)  <code>enable_shared_from_this</code>. Consider the following:
+</p>
+
+
+
+<pre class="src src-c++"><span style="color: #af00ff;">class</span> <span style="color: #008700;">Student</span> : <span style="color: #af00ff;">public</span> <span style="color: #008700;">enable_shared_from_this</span>&lt;<span style="color: #008700;">Student</span>&gt;
+{
+<span style="color: #af00ff;">public</span>:
+    <span style="color: #008700;">void</span> <span style="color: #0000ff;">offer</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">if</span> (interested_in(c))
+        {
+            c.enroll(shared_from_this());
+        }
+    }
+<span style="color: #af00ff;">private</span>:
+    <span style="color: #008700;">bool</span> <span style="color: #0000ff;">interested_in</span>(<span style="color: #008700;">Course</span> &amp;<span style="color: #af5f00;">c</span>)
+    {
+        <span style="color: #af00ff;">return</span> <span style="color: #008787;">true</span>;
+    }
+};
+<span style="color: #0000ff;">TEST</span>(StudentCourse, Best)
+{
+    <span style="color: #008700;">Course</span> <span style="color: #af5f00;">math</span>;
+    <span style="color: #008700;">shared_ptr</span>&lt;<span style="color: #008700;">Student</span>&gt; <span style="color: #af5f00;">s</span>(<span style="color: #af00ff;">new</span> <span style="color: #008700;">Student</span>);
+    s-&gt;offer(math);
+    ASSERT_EQ(2, s.use_count());
+}
+
+</pre>
+
+
+<p>
+The class <code>enable_shared_from_this</code> is buddies with <code>shared_ptr</code> and their friendship internally
+enables all the machinery we listed above. In other words, when <code>share_ptr</code> notices the pointer it
+is taking belongs to a class that derives from <code>enable_shared_from_this</code> it populates the weak
+reference held as a protected member of <code>enable_shared_from_this</code>. The application subclass
+(i.e. <code>Student</code>) can en-cash this weak reference anytime using the <code>shared_from_this</code> protected
+member function. In summary, we get all we need, just by extending from <code>enable_shared_from_this</code>.
+</p>
+<p>
+And, that, gentle reader, is why we need <code>enable_shared_from_this</code>.
+</p></div>
+</div>
+</div>
+
+<div id="postamble">
+<p class="date">Date: 13 August 2011</p>
+<p class="author">Author: aldrin j d'souza</p>
+<p class="creator">Org version 7.8.03 with Emacs version 23</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+
+</div>
+</body>
+</html>

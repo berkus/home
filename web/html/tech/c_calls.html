@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>what's in a call?</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="title" content="what's in a call?"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="27 January 2009"/>
+<meta name="author" content="aldrin j d'souza"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+
+
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div id="content">
+<h1 class="title">what's in a call?</h1>
+
+<p>consider the following piece of code:
+</p>
+
+
+
+<pre class="src src-c"><span style="color: #008700;">int</span> <span style="color: #0000ff;">sum</span>(<span style="color: #008700;">int</span> <span style="color: #af5f00;">x</span>, <span style="color: #008700;">int</span> <span style="color: #af5f00;">y</span>){
+  <span style="color: #008700;">int</span> <span style="color: #af5f00;">result</span> = x+y;
+  <span style="color: #af00ff;">return</span> result;
+}
+<span style="color: #008700;">int</span> <span style="color: #0000ff;">main</span>(){
+  <span style="color: #af00ff;">return</span> sum(1,2);
+}
+</pre>
+
+
+<p>
+as c programmers, we expect the <code>main</code> routine to call <code>sum</code>.  however, the
+compiler has a lot of details to sort out before generating the machine
+instructions to realize this: how should the arguments be passed, how will
+the result be returned, etc. to address these implementation details, the
+compiler adheres to certain conventions. this note attempts to uncover the
+conventions used by the compiler i have at hand (visual studio c/c++
+compiler). for a similar discussion with gcc on x86-linux - see this <a href="http://www.cs.umbc.edu/~chang/cs313.s02/stack.shtml">page</a>.
+</p>
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">getting started</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>we start by building the simple program shown above and loading the
+executable in a debugger for stepwise execution (the <code>/INCREMENTAL:NO</code>
+linker option disables the use of incremental link tables which complicate
+function calls and are irrelevant to our current discussion, anyway.)
+</p>
+
+
+
+<pre class="example">c:\&gt;cl /nologo /c /Zi test.c
+c:\&gt;link /nologo /INCREMENTAL:NO /DEBUG test.obj
+c:\&gt;cdb test.exe
+0:000&gt; uf main
+00401020 55              push    ebp
+00401021 8bec            mov     ebp,esp
+00401023 6a02            push    2
+00401025 6a01            push    1
+00401027 e8d4ffffff      call    test!sum (00401000)
+0040102c 83c408          add     esp,8
+0040102f 5d              pop     ebp
+00401030 c3              ret
+0:000&gt; uf sum
+test!sum:
+00401000 55              push    ebp
+00401001 8bec            mov     ebp,esp
+00401003 51              push    ecx
+00401004 8b4508          mov     eax,dword ptr [ebp+8]
+00401007 03450c          add     eax,dword ptr [ebp+0Ch]
+0040100a 8945fc          mov     dword ptr [ebp-4],eax
+0040100d 8b45fc          mov     eax,dword ptr [ebp-4]
+00401010 8be5            mov     esp,ebp
+00401012 5d              pop     ebp
+00401013 c3              ret
+</pre>
+
+
+<p>
+the unassembled output shows the machine instructions generated for the two
+routines we're looking into.  the actual instructions depends on the
+compiler and the target machine (which, in my case are cl 14.00.50727.42
+and 80x86.) note that both routines start (with - <code>push ebp</code> &amp; <code>mov ebp,esp</code>) and end similarly (with - <code>pop ebp</code> &amp; <code>ret</code>).  these similar
+<i>prologue</i> and <i>epilogue</i> are independent of the function's business logic
+and manage its <i>stack frame</i>. on x86, the stack frame is made up of the
+memory between the addresses in the <code>ebp</code> (stack bottom pointer) and the
+<code>esp</code> (stack top pointer). as we'll see later, all memory locations
+relevant to the function's execution are referenced in relation to this
+frame.
+</p>
+<p>
+so then, without further ado, let's start the program and break at the
+point where main gets started with its calling business, i.e. at address
+<code>00401023</code>.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">the caller</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>the caller prepares for the call by pushing the arguments it wishes to pass
+onto the stack.  the two instructions following our break point in <code>main</code>
+do just that:
+</p>
+
+
+
+<pre class="example">0:000&gt; bp 00401023
+0:000&gt; g
+Breakpoint 0 hit
+test!main+0x3:
+00401023 6a02            push    2
+0:000&gt; r esp,ebp
+esp=0012ff70 ebp=0012ff70
+0:000&gt; p
+test!main+0x5:
+00401025 6a01            push    1
+0:000&gt; p
+test!main+0x7:
+00401027 e8d4ffffff      call    test!sum (00401000)
+0:000&gt; r esp,ebp
+esp=0012ff68 ebp=0012ff70
+0:000&gt; dds esp ebp
+0012ff68  00000001
+0012ff6c  00000002
+0012ff70  0012ffc0
+</pre>
+
+
+<p>
+notice that the arguments are pushed in the reverse order of
+declaration. on x86 the <code>push</code> instruction decrements the <code>esp</code> by an
+offset (equal to the bytes needed to hold the value we're pushing) and
+stores the value starting at the new address in the <code>esp</code>. since we've
+pushed two integers the <code>esp</code> is reduced by 8 and the stack frame (i.e.
+the memory between the addresses in ebp and <code>esp</code>) now contains the two
+arguments we've just pushed (in addition to whatever it had earlier.)
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">the call</h2>
+<div class="outline-text-2" id="text-3">
+
+<p>the next instruction is the actual call to the sum routine. on x86 the
+<code>call</code> instruction saves the instruction pointer on the stack and jumps to
+the label passed as the argument, which, in our case is <code>test!sum</code>.
+</p>
+
+
+
+<pre class="example">0:000&gt; u eip l2
+test!main+0x7:
+00401027 e8d4ffffff      call    test!sum (00401000)
+0040102c 83c408          add     esp,8
+0:000&gt; t
+test!sum:
+00401000 55              push    ebp
+0:000&gt; r esp,ebp
+esp=0012ff64 ebp=0012ff70
+0:000&gt; dds esp ebp
+0012ff64  0040102c test!main+0xc
+0012ff68  00000001
+0012ff6c  00000002
+0012ff70  0012ffc0
+</pre>
+
+
+<p>
+the debugger output confirms what we knew about <code>call</code> - the esp is reduced
+by 4 and the top of the stack contains the address of the instruction just
+after the <code>call</code> in main. note that the <code>eip</code> now contains the instruction
+of the first instruction in <code>sum</code> - which means we've entered our callee.
+</p>
+<p>
+the caller's stack-frame at this point of time looks as:
+</p>
+
+
+
+<pre class="example">   +----------+----------+
+esp| 0012ff64 | 0040102c | return location in main
+   +----------+----------+
+   | 0012ff68 | 00000001 | argument #1
+   +----------+----------+
+   | 0012ff6c | 00000002 | argument #2
+   +----------+----------+
+ebp| 0012ff70 | 0012ffc0 | main's caller's ebp
+   +----------+----------+
+     address    content
+</pre>
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">the callee</h2>
+<div class="outline-text-2" id="text-4">
+
+<p>one of the <i>calling conventions</i> the compiler follows ensures that value of
+the <code>ebp</code> register is preserved during a call. in other words, after the
+callee finishes, the ebp register is restored to the value it held before
+the callee execution started. this is achieved by the prologue and the
+epilogue we identified earlier. the convention actually extends to the
+values in <code>esi</code>, <code>edi</code> and <code>ebx</code> registers too. however, since our <code>sum</code>
+routine does not use any of those registers there is no need to preserve
+their values.  
+</p>
+<p>
+let's start tracing the callee execution:
+</p>
+
+
+
+<pre class="example">0:000&gt; u eip l1
+test!sum:
+00401000 55              push    ebp
+0:000&gt; p
+test!sum+0x1:
+00401001 8bec            mov     ebp,esp
+0:000&gt; p
+test!sum+0x3:
+00401003 51              push    ecx
+0:000&gt; dds esp ebp
+0012ff60  0012ff70
+0:000&gt; p
+test!sum+0x4:
+00401004 8b4508          mov     eax,dword ptr [ebp+8] ss:0023:0012ff68=00000001
+0:000&gt; dds esp ebp
+0012ff5c  00000001
+0012ff60  0012ff70
+</pre>
+
+
+<p>
+the first instruction pushes the existing <code>ebp</code> value to the stack and the
+next moves the <code>esp</code> value into the <code>ebp</code> register. effectively the two
+setup a fresh stack frame for the sum routine, very much like the main's
+stack frame when we started tracing the program. the next instruction is a
+bit tricky - we didn't keep anything in <code>ecx</code>, so why <code>push ecx</code>?  why is
+the compiler pushing an irrelevant value on the stack?
+</p>
+<p>
+actually what the compiler wants to achieve is to allocate space for the
+local variable <code>result</code>. typically, it allocates space by subtracting the
+combined size of all the locals from the esp, but here it sees scope for an
+optimization. all that this routine needs is 4 bytes of local storage for
+the integer variable and esp can be appropriately decremented by pushing a
+dummy register.  <code>sub 4 esp</code> would need more space and time to achieve the
+same effect.
+</p>
+<p>
+so now the stack frame looks as:
+</p>
+
+
+
+<pre class="example">                 +----------+----------+                                                      
+[ebp-4]       esp| 0012ff5c | ???????? | local #1 = result (uninitialized)
+                 +----------+----------+                                                      
+              ebp| 0012ff60 | 0012ff70 | main's ebp                                           
+                 +----------+----------+                                                      
+                 | 0012ff64 | 0040102c | return address in main                               
+                 +----------+----------+                                                      
+[epb+8]          | 0012ff68 | 00000001 | argument #1 = x                                      
+                 +----------+----------+                                                      
+[ebp+12]         | 0012ff6c | 00000002 | argument #2 = y                                      
+                 +----------+----------+                                                      
+[old ebp]        | 0012ff70 | 0012ffc0 | main's caller's ebp                                  
+                 +----------+----------+                                                      
+                   address    contents                                                        
+</pre>
+
+
+
+</div>
+
+<div id="outline-container-4-1" class="outline-4">
+<h4 id="sec-4-1">the computation</h4>
+<div class="outline-text-4" id="text-4-1">
+
+<p>the next few instructions implement the business logic of the
+routine. they're expected to add the two parameters and store the result in
+the local variable. to refer to these variables and parameters, the
+compiler uses another calling convention. the convention ensures that local
+variables are stored at negative offsets from the ebp while the parameters
+are at positive ones. for example: the address of the first and the second
+parameters is <code>ebp+8</code> and <code>ebp+12</code> respectively.  similarly, the local
+variable <code>result</code> is situated at <code>ebp-4</code>. the next three instructions use
+these addresses to compute the sum of the two parameters and move it to the
+local variable result.
+</p>
+
+
+
+<pre class="example">test!sum+0x4:
+00401004 8b4508          mov     eax,dword ptr [ebp+8] ss:0023:0012ff68=00000001
+0:000&gt;p
+test!sum+0x7:
+00401007 03450c          add     eax,dword ptr [ebp+0Ch] ss:0023:0012ff6c=00000002
+0:000&gt;p
+test!sum+0xa:
+0040100a 8945fc          mov     dword ptr [ebp-4],eax ss:0023:0012ff5c=00000001
+</pre>
+
+
+<p>
+the  next instruction  is  responsible  for ensuring  the  result value  is
+returned back to main.
+</p>
+
+
+
+<pre class="example">0:000&gt; p
+test!sum+0xd:
+0040100d 8b45fc          mov     eax,dword ptr [ebp-4] ss:0023:0012ff5c=00000003
+</pre>
+
+
+<p>
+the compiler convention assumes that the caller will look for the result in
+the eax register. consequently, return values that are upto 32 bits wide
+are returned directly in the eax register (as is the case, in our code). if
+the computed result is larger than 32 bits, it is returned by reference
+with eax containing a pointer to the result.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4-2" class="outline-4">
+<h4 id="sec-4-2">the return</h4>
+<div class="outline-text-4" id="text-4-2">
+
+
+<p>
+with the computation done, its time for the callee to return, but before
+that happens, we need to deallocate the locals and restore the the ebp to
+its original value. the epilog achieves this quite succintly in just two
+instructions. the first sets esp to ebp thus reclaiming the space used by
+the locals and the second resets ebp to the value on the top of the stack
+(which is the caller's ebp)
+</p>
+
+
+
+<pre class="example">test!sum+0x10:
+00401010 8be5            mov     esp,ebp
+0:000&gt; p
+test!sum+0x12:
+00401012 5d              pop     ebp
+0:000&gt; dds esp  ebp
+0012ff60  0012ff70
+0:000&gt; p
+test!sum+0x13:
+00401013 c3              ret
+0:000&gt; dds esp  ebp
+0012ff64  0040102c test!main+0xc
+0012ff68  00000001
+0012ff6c  00000002
+0012ff70  0012ffc0
+</pre>
+
+
+<p>
+notice that at the end of the two instructions the stack has been restored
+to as it was just before we started the execution of sum. the final
+instruction in sum <code>ret</code> pops the return address pushed by <code>call</code> and jumps
+to the address, thus returning the control back to the caller.
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">the cleanup</h2>
+<div class="outline-text-2" id="text-5">
+
+<p>following <code>ret</code> the control returns back to the main where there's not much
+left to do. it only has to return the result obtained from <code>sum</code> and since
+the result is already in eax there's nothing to be done. the stack,
+however, still contains the call arguments on it, which need to be
+deallocated.
+</p>
+
+
+
+<pre class="example">test!main+0xc:
+0040102c 83c408          add     esp,8
+0:000&gt; dds esp ebp
+0012ff68  00000001
+0012ff6c  00000002
+0012ff70  0012ffc0
+0:000&gt; p
+test!main+0xf:
+0040102f 5d              pop     ebp
+0:000&gt; dds esp ebp
+0012ff70  0012ffc0
+</pre>
+
+
+<p>
+the argument memory is reclaimed by just adjusting the esp.  once that's
+done returns to the state it was when we started tracing main.  the
+remaining epilog is the same as in sum. here, the control returns to the
+runtime routine which had invoked main.
+</p>
+
+</div>
+
+<div id="outline-container-5-1" class="outline-3">
+<h3 id="sec-5-1">microsoft specific calling conventions</h3>
+<div class="outline-text-3" id="text-5-1">
+
+
+<p>
+   for stack cleanup the microsoft compiler provides the programmer with a
+   bunch of <a href="http://msdn.microsoft.com/en-us/library/984x0h58(VS.71).aspx">options</a>. for example, the programmer can choose to make the
+   callee responsibile for cleaning up the arguments (instead of the
+   caller, as is the case with our code). the idea is to reduce code size
+   by localizing the clean-up code at one place, instead of scattering and
+   repeating it in all places where the call is made. for a frequently used
+   routine in large program this might save some code space.
+</p>
+<p>
+   there are some interesting writeups on this matter - see <a href="http://www.unixwiz.net/techtips/win32-callconv.html">this</a> and
+   <a href="http://blogs.msdn.com/oldnewthing/archive/2004/01/15/58973.aspx">this</a>. however i see little use of these proprietary options in code that
+   i usually write. they're good things to be aware of though, especially
+   in case we run into some stack corruption problems due to mismatches in
+   these conventions.
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6">summary</h2>
+<div class="outline-text-2" id="text-6">
+
+<p>here are the steps for review:
+</p><ul>
+<li>the caller pushes the function arguments in the reverse order of
+  declaration.
+</li>
+<li>the caller makes the actual call.
+</li>
+<li>the callee saves and updates the <code>ebp</code>.
+</li>
+<li>the callee allocates the local variables by adjusting the <code>esp</code>.
+</li>
+<li>the callee saves the CPU registers it wants to modify.
+</li>
+<li>the callee refers to the parameters giving positive offsets from its <code>ebp</code>.
+</li>
+<li>the callee refers to its local variables by giving negative offsets from its <code>ebp</code>.
+</li>
+<li>the callee stores the return value of the computation (or a pointer to
+  it) in the eax.
+</li>
+<li>the callee deallocates the space used by local variables, by popping
+  them off the stack. 
+</li>
+<li>the callee restores the caller's values of the registers it had saved.
+</li>
+<li>the callee restores the caller's <code>ebp</code> value.
+</li>
+<li>the callee returns.
+</li>
+<li>the caller cleans up the space used by the function arguments.
+</li>
+</ul>
+
+
+<p>
+the  last  step  is  what  distinguishes the  <code>__cdecl</code>  (default)  calling
+convention from the <code>__stdcall</code> convention. in the latter the clean-up code
+is in the callee.
+</p>
+</div>
+</div>
+</div>
+
+<div id="postamble">
+<p class="date">Date: 27 January 2009</p>
+<p class="author">Author: aldrin j d'souza</p>
+<p class="creator">Org version 7.8.03 with Emacs version 23</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+
+</div>
+</body>
+</html>
