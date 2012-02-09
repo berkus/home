@@ -57,6 +57,6 @@ class AppEngineTest(unittest.TestCase):
 
     def test_update(self):
         newrepo = MockRepo({'version': '124', 'pages': 'unit-test-1:def;unit-test-3:pqr'})
-        self.assertEquals(len(self.db.synchronize(newrepo)), 3)  # 3 changes, 1 add, 1 remove, 1 change
+        self.assertEquals(self.db.synchronize(newrepo)[0], '124')
         self.assertEquals(len(self.db.pages()), 2)
         self.assertEquals(self.db.version_of('unit-test-1'), 'def')

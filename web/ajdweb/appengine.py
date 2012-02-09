@@ -34,6 +34,15 @@ class AppEngine(Database):
         page = Page.get_by_key_name(p)
         return (page.version if page else None)
 
+    def content_of(self, p):
+        page = Page.get_by_key_name(p)
+        return ({
+            'date': page.date,
+            'title': page.title,
+            'summary': page.summary,
+            'content': page.content,
+            } if page else None)
+
     def add(self, p, contents):
         if contents[0]:
             page = Page(
@@ -59,6 +68,5 @@ class AppEngine(Database):
         return ('change', p)
 
     def record(self, version, updates):
-        v = Version(key_name=version, changes=[' '.join([p[0], p[1]]) for p in updates])
-        v.put()
-        return v.changes
+        Version(key_name=version, changes=[' '.join([p[0], p[1]]) for p in updates]).put()
+        return (version, updates)

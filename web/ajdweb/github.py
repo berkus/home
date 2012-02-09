@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-from urllib import urlopen
+from urllib2 import urlopen
 from os.path import splitext
 from base64 import b64decode
 from datetime import datetime

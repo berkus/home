@@ -117,6 +117,7 @@
 ;;load extra packages
 (require 'p4)
 (require 'epa)
+(require 'jinja)
 (require 'uniquify)
 (require 'yaml-mode)
 (require 'protobuf-mode)
