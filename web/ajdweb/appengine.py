@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from jinja2 import Markup
 from datetime import datetime
 from database import Database
 from google.appengine.ext import db
@@ -38,9 +39,9 @@ class AppEngine(Database):
         page = Page.get_by_key_name(p)
         return ({
             'date': page.date,
-            'title': page.title,
-            'summary': page.summary,
-            'content': page.content,
+            'title': Markup(page.title),
+            'summary': Markup(page.summary),
+            'content': Markup(page.content),
             } if page else None)
 
     def add(self, p, contents):

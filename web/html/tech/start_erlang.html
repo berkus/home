@@ -77,9 +77,17 @@ With that done, we're ready to roll.
 find primes less than a given number and requires enough Erlang primitives to exercise most of the
 syntax I've been reading on the couch so far. Here's the <a href="https://github.com/aldrin/ajd/blob/master/code/misc/sieve.hrl">program</a> in its entirety:
 </p>
-<p>
-CANNOT INCLUDE FILE ../../code/misc/sieve.hrl
-</p>
+
+
+
+<pre class="src src-erlang">% Sieve of Eratosthenes
+primes(N) -&gt; primes(lists:seq(3, N, 2), round(math:sqrt(N) + 0.5), [2]).
+primes([First|Rest], Max, Result) when First &lt; Max -&gt; primes([X || X &lt;- Rest, (X rem First) =/= 0], Max, [First|Result]);
+primes([First|Rest], Max, Result) -&gt; primes(Rest, Max, [First|Result]);
+primes([], _Max, Result) -&gt; lists:reverse(Result).
+</pre>
+
+
 <p>
 The essence of the algorithm <i>is</i> the program and the implementation is just 4 lines of code!
 Typically, this is the point where functional programming aficionados jump over with joy and mumble
@@ -141,9 +149,23 @@ The function take an Erlang module name runs it using the runtime in the <code>-
 that module exports a <code>main/1</code> function that serves as the entry point. The program I wrote earlier
 does not, so we'd need a driver module. <a href="https://github.com/aldrin/ajd/blob/master/code/misc/sieve.erl">Here</a> is one:
 </p>
-<p>
-CANNOT INCLUDE FILE ../../code/misc/sieve.erl
-</p>
+
+
+
+<pre class="src src-erlang">% shell driver for sieve.hrl
+-module(sieve).
+-export([main/1]).
+-include(<span style="color: #87005f;">"sieve.hrl"</span>).
+
+main([A])-&gt;
+    Print = fun(X) -&gt; io:format(<span style="color: #87005f;">"~p "</span>,[X]) end,
+    Primes = primes(list_to_integer(atom_to_list(A))),
+    lists:foreach(Print, Primes),
+    io:format(<span style="color: #87005f;">"~n"</span>),
+    init:stop().
+</pre>
+
+
 <p>
 Now those 4 lines can be run in Powershell instead of the Erlang shell:
 </p>

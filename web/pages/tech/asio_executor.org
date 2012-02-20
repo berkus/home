@@ -9,7 +9,7 @@ overweight) [[http://download.oracle.com/javase/6/docs/api/java/util/concurrent/
 
 [[https://github.com/aldrin/ajd/blob/master/code/ajd/explore/test/src/executor_test.cc][Here's]] what I expect from the executor (syntactically):
 
-#+INCLUDE "../../code/ajd/explore/test/src/executor_test.cc" src c++
+#+INCLUDE "../../../code/ajd/explore/test/src/executor_test.cc" src c++
 
 I expect to create an executor with the specified number of threads in its pool and to have it ready
 to jobs that I submit during the lifetime of the instance. The destructor must wait till the last
@@ -18,7 +18,7 @@ invokable must be acceptable.
 
 With those requirements in mind, [[https://github.com/aldrin/ajd/blob/master/code/ajd/explore/main/include/executor.h][here]]'s an complete implementation:
 
-#+INCLUDE "../../code/ajd/explore/main/include/executor.h" src c++
+#+INCLUDE "../../../code/ajd/explore/main/include/executor.h" src c++
 
 As someone who has written shabbily stitched executors in the past, I can't help but marvel at the
 economy of this implementation. No dispatch queues, no mutexes to guard share state, no condition

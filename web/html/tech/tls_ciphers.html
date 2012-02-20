@@ -127,9 +127,49 @@ configuration again:
 <p>
 Next, I measure the transfer rates using the following <a href="https://github.com/aldrin/ajd/blob/master/code/misc/choose_tls_ciphers.py">script</a>:
 </p>
-<p>
-CANNOT INCLUDE FILE ../../code/misc/choose<sub>tls</sub><sub>ciphers</sub>.py
-</p>
+
+
+
+<pre class="src src-python"><span style="color: #af0000;">#!/usr/bin/env python</span>
+<span style="color: #af0000;"># -*- coding: utf-8 -*-</span>
+
+<span style="color: #af5f00;">COUNT</span> = <span style="color: #87005f;">'1'</span>
+<span style="color: #af5f00;">DATA</span> = <span style="color: #87005f;">'100M'</span>
+<span style="color: #af5f00;">PORT</span> = <span style="color: #87005f;">'8443'</span>
+<span style="color: #af5f00;">CIPHERS</span> = <span style="color: #87005f;">'TLSv1+aRSA'</span>
+<span style="color: #af5f00;">SERVER</span> = <span style="color: #87005f;">'localhost'</span>
+<span style="color: #af5f00;">AB</span> = <span style="color: #87005f;">'/home/aldrin/pkg/apache/bin/ab'</span>
+<span style="color: #af5f00;">OPENSSL</span> = <span style="color: #87005f;">'/home/aldrin/pkg/openssl/bin/openssl'</span>
+<span style="color: #af5f00;">URL</span> = <span style="color: #87005f;">'https://{0}:{1}/{2}'</span>.format(SERVER, PORT, DATA)
+
+
+<span style="color: #af00ff;">def</span> <span style="color: #0000ff;">measure_cipher_rate</span>():
+    <span style="color: #87005f;">""" Runs the Apache HTTP benchmark tools iteratively over the a subset of ciphers and prints</span>
+<span style="color: #87005f;">    their transfer rates."""</span>
+
+    <span style="color: #af00ff;">from</span> subprocess <span style="color: #af00ff;">import</span> check_output
+    <span style="color: #af00ff;">from</span> operator <span style="color: #af00ff;">import</span> itemgetter
+    rates = {}
+    openssl_cmd = <span style="color: #87005f;">'{0} ciphers -v {1}'</span>.format(OPENSSL, CIPHERS)
+    openssl_out = check_output(openssl_cmd.split())
+    ciphers = [c.split()[0] <span style="color: #af00ff;">for</span> c <span style="color: #af00ff;">in</span> openssl_out.split(<span style="color: #87005f;">'\n'</span>) <span style="color: #af00ff;">if</span> <span style="color: #875f87;">len</span>(c) &gt; 0]
+    <span style="color: #af00ff;">for</span> cipher <span style="color: #af00ff;">in</span> ciphers:
+        <span style="color: #af00ff;">try</span>:
+            ab_cmd = <span style="color: #87005f;">'{0} -f tls1 -n {1} -Z {2} {3}'</span>.format(AB, COUNT, cipher, URL)
+            ab_out = check_output(ab_cmd.split(), stderr=<span style="color: #875f87;">file</span>(<span style="color: #87005f;">'/dev/null'</span>))
+            rate_line = [l <span style="color: #af00ff;">for</span> l <span style="color: #af00ff;">in</span> ab_out.split(<span style="color: #87005f;">'\n'</span>) <span style="color: #af00ff;">if</span> l.startswith(<span style="color: #87005f;">'Transfer rate:'</span>)][0]
+            rates[cipher] = <span style="color: #875f87;">float</span>(rate_line.split(<span style="color: #87005f;">':'</span>)[1].split(<span style="color: #87005f;">'['</span>)[0].strip())
+        <span style="color: #af00ff;">except</span>:
+            <span style="color: #af00ff;">print</span> <span style="color: #87005f;">'unsupported cipher:'</span>, cipher
+    <span style="color: #af00ff;">for</span> (k, v) <span style="color: #af00ff;">in</span> <span style="color: #875f87;">sorted</span>(rates.iteritems(), key=itemgetter(1)):
+        <span style="color: #af00ff;">print</span> <span style="color: #87005f;">'{0:&lt;30} {1}'</span>.format(k, v)
+
+
+<span style="color: #af00ff;">if</span> <span style="color: #875f87;">__name__</span> == <span style="color: #87005f;">'__main__'</span>:
+    measure_cipher_rate()
+</pre>
+
+
 <p>
 Here's the output:
 </p>

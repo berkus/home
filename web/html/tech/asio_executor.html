@@ -34,9 +34,28 @@ overweight) <a href="http://download.oracle.com/javase/6/docs/api/java/util/conc
 <p>
 <a href="https://github.com/aldrin/ajd/blob/master/code/ajd/explore/test/src/executor_test.cc">Here's</a> what I expect from the executor (syntactically):
 </p>
-<p>
-CANNOT INCLUDE FILE ../../code/ajd/explore/test/src/executor<sub>test</sub>.cc
-</p>
+
+
+
+<pre class="src src-c++"><span style="color: #875f87;">#include</span> <span style="color: #87005f;">"executor.h"</span>
+<span style="color: #875f87;">#include</span> <span style="color: #87005f;">&lt;gtest/gtest.h&gt;</span>
+
+<span style="color: #008700;">void</span> <span style="color: #0000ff;">work</span>() {}
+<span style="color: #008700;">void</span> <span style="color: #0000ff;">other_work</span>(<span style="color: #af00ff;">const</span> <span style="color: #008700;">char</span> *<span style="color: #af5f00;">c</span>) {}
+<span style="color: #af00ff;">struct</span> <span style="color: #008700;">functor_work</span> { <span style="color: #008700;">void</span> <span style="color: #af00ff;">operator</span><span style="color: #0000ff;">()</span>() {} };
+<span style="color: #af00ff;">auto</span> <span style="color: #008700;">lambda</span> = [] {};
+
+<span style="color: #0000ff;">TEST</span>(Executor, UsageSyntax)
+{
+  <span style="color: #008787;">ajd</span>::<span style="color: #008700;">executor</span> <span style="color: #af5f00;">e</span>(2);
+  e.submit(work);
+  e.submit(<span style="color: #008787;">boost</span>::bind(other_work, <span style="color: #87005f;">"input"</span>));
+  e.submit(functor_work());
+  e.submit(lambda);
+}
+</pre>
+
+
 <p>
 I expect to create an executor with the specified number of threads in its pool and to have it ready
 to jobs that I submit during the lifetime of the instance. The destructor must wait till the last
@@ -46,9 +65,55 @@ invokable must be acceptable.
 <p>
 With those requirements in mind, <a href="https://github.com/aldrin/ajd/blob/master/code/ajd/explore/main/include/executor.h">here</a>'s an complete implementation:
 </p>
-<p>
-CANNOT INCLUDE FILE ../../code/ajd/explore/main/include/executor.h
-</p>
+
+
+
+<pre class="src src-c++"><span style="color: #875f87;">#if</span><span style="color: #875f87;">n</span><span style="color: #875f87;">def</span> AJD_EXECUTOR_H_
+<span style="color: #875f87;">#define</span> <span style="color: #af5f00;">AJD_EXECUTOR_H_</span>
+
+<span style="color: #875f87;">#include</span> <span style="color: #87005f;">&lt;boost/asio.hpp&gt;</span>
+<span style="color: #875f87;">#include</span> <span style="color: #87005f;">&lt;boost/bind.hpp&gt;</span>
+<span style="color: #875f87;">#include</span> <span style="color: #87005f;">&lt;boost/thread.hpp&gt;</span>
+
+<span style="color: #af00ff;">namespace</span> <span style="color: #008787;">ajd</span>
+{
+  <span style="color: #af00ff;">using</span> <span style="color: #008787;">boost</span>::<span style="color: #008700;">bind</span>;
+  <span style="color: #af00ff;">using</span> <span style="color: #008787;">boost</span>::<span style="color: #008700;">thread</span>;
+  <span style="color: #af00ff;">using</span> <span style="color: #008787;">boost</span>::<span style="color: #008700;">thread_group</span>;
+  <span style="color: #af00ff;">using</span> <span style="color: #008787;">boost</span>::<span style="color: #008787;">asio</span>::<span style="color: #008700;">io_service</span>;
+
+  <span style="color: #af00ff;">class</span> <span style="color: #008700;">executor</span>
+  {
+  <span style="color: #af00ff;">public</span>:
+
+    <span style="color: #0000ff;">executor</span>(<span style="color: #008700;">size_t</span> <span style="color: #af5f00;">n</span>): service_(n), work_(service_)
+    {
+      <span style="color: #af00ff;">for</span> (<span style="color: #008700;">size_t</span> <span style="color: #af5f00;">i</span> = 0; i &lt; n; i++)
+      { pool_.create_thread(bind(&amp;<span style="color: #008787;">io_service</span>::run, &amp;service_)); }
+    }
+
+    ~<span style="color: #0000ff;">executor</span>()
+    {
+      service_.stop();
+      pool_.join_all();
+    }
+
+    <span style="color: #af00ff;">template</span>&lt;<span style="color: #af00ff;">typename</span> <span style="color: #008700;">F</span>&gt; <span style="color: #008700;">void</span> <span style="color: #0000ff;">submit</span>(<span style="color: #008700;">F</span> <span style="color: #af5f00;">task</span>)
+    {
+      service_.post(task);
+    }
+
+  <span style="color: #af00ff;">protected</span>:
+    <span style="color: #008700;">thread_group</span> <span style="color: #af5f00;">pool_</span>;
+    <span style="color: #008700;">io_service</span> <span style="color: #af5f00;">service_</span>;
+    <span style="color: #008787;">io_service</span>::<span style="color: #008700;">work</span> <span style="color: #af5f00;">work_</span>;
+  };
+}
+
+<span style="color: #875f87;">#endif</span> <span style="color: #af0000;">// </span><span style="color: #af0000;">AJD_EXECUTOR_H_</span>
+</pre>
+
+
 <p>
 As someone who has written shabbily stitched executors in the past, I can't help but marvel at the
 economy of this implementation. No dispatch queues, no mutexes to guard share state, no condition

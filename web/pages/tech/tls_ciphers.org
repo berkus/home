@@ -71,7 +71,7 @@ http {
 #+END_SRC 
 Next, I measure the transfer rates using the following [[https://github.com/aldrin/ajd/blob/master/code/misc/choose_tls_ciphers.py][script]]:
 
-#+INCLUDE "../../code/misc/choose_tls_ciphers.py" src python
+#+INCLUDE "../../../code/misc/choose_tls_ciphers.py" src python
 
 Here's the output:
 #+BEGIN_EXAMPLE

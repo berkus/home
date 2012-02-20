@@ -36,7 +36,7 @@ I chose the [[http://en.wikipedia.org/wiki/Sieve_of_Eratosthenes][Sieve of Erato
 find primes less than a given number and requires enough Erlang primitives to exercise most of the
 syntax I've been reading on the couch so far. Here's the [[https://github.com/aldrin/ajd/blob/master/code/misc/sieve.hrl][program]] in its entirety:
 
-#+INCLUDE "../../code/misc/sieve.hrl" src erlang
+#+INCLUDE "../../../code/misc/sieve.hrl" src erlang
 
 The essence of the algorithm /is/ the program and the implementation is just 4 lines of code!
 Typically, this is the point where functional programming aficionados jump over with joy and mumble
@@ -82,7 +82,7 @@ The function take an Erlang module name runs it using the runtime in the =-noshe
 that module exports a =main/1= function that serves as the entry point. The program I wrote earlier
 does not, so we'd need a driver module. [[https://github.com/aldrin/ajd/blob/master/code/misc/sieve.erl][Here]] is one:
 
-#+INCLUDE "../../code/misc/sieve.erl" src erlang
+#+INCLUDE "../../../code/misc/sieve.erl" src erlang
 
 Now those 4 lines can be run in Powershell instead of the Erlang shell:
 
