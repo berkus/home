@@ -1,0 +1,14 @@
+{# -*- mode: jinja -*- #}
+{% extends "base" %}
+
+{% block content %}
+<nav>
+ <ul>
+ {% for crumb in breadcrumb %}
+   <li> {{ navigator(crumb) }} </li>
+ {% endfor %}
+   <li class='last'> {{ title }} </li>      
+ </ul>
+</nav>
+<article>{{ content }} </article>
+{% endblock %}

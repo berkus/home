@@ -6,11 +6,11 @@ threadsafe: true
 
 handlers:
 - url: /static
-  static_dir: static
+  static_dir: ajdweb/static
 
 - url: /favicon\.ico
-  static_files: static/img/icon.ico
-  upload: static/img/icon\.ico
+  static_files: ajdweb/static/img/icon.ico
+  upload: ajdweb/static/img/icon\.ico
 
 - url: /update
   script: ajdweb.app
