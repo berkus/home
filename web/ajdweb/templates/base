@@ -1,10 +1,16 @@
 {# -*- mode: jinja -*- #}
-{% set titles = { '/': 'Home', '/tech/': 'Technical' } %}
+{% set titles = { '/': 'Home', '/tech': 'Technical' } %}
+{% set icons = { '/tech': '/static/img/tech.png' } %}
 
-{% set icons = { '/tech/': '/static/img/tech.png' } %}
-
-{% macro navigator(name) %}
-   <a href="{{name}}">{{titles[name]}}</a>
+{% macro navigator(breadcrumb, last) %}
+   <nav>
+    <ul>
+      {% for crumb in breadcrumb %}
+      <li> <a href="{{crumb}}">{{titles[crumb]}}</a> </li>
+      {% endfor %}
+      <li class='last'> {{ last }} </li>      
+    </ul>
+  </nav>   
 {% endmacro %}
 
 {% macro icon(name) %}

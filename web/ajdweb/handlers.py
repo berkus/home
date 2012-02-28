@@ -34,16 +34,16 @@ class UpdateHandler(BaseHandler):
 class PageHandler(BaseHandler):
 
     def get(self, path):
-        if len(path) > 0:
-            page = self.db.content_of(path)
-            if page:
-                self.render_response('page', **page)
-            else:
-                page = self.db.index_of(path)
-                if page:
-                    self.render_response('index', **page)
-                else:
-                    self.abort(404)
+        if len(path) == 0:
+            path = '/'
+        if not path.startswith('/'):
+            path = '/' + path
+        page = self.db.content_of(path)
+        if page:
+            self.render_response('page', **page)
         else:
-            page = self.db.top()
-            self.render_response('home', **page)
+            page = self.db.index_of(path)
+            if page:
+                self.render_response('index', **page)
+            else:
+                self.abort(404)

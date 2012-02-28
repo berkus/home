@@ -14,7 +14,6 @@ class Page(db.Model):
     summary = db.TextProperty(required=True)
     content = db.TextProperty(required=True)
     version = db.StringProperty(required=True)
-    breadcrumb = db.StringListProperty(required=True)
 
 
 class Version(db.Model):
@@ -36,34 +35,6 @@ class AppEngine(Database):
         page = Page.get_by_key_name(p)
         return (page.version if page else None)
 
-    def content_of(self, p):
-        page = Page.get_by_key_name(p)
-        return ({
-            'url': p,
-            'breadcrumb': page.breadcrumb,
-            'date': page.date,
-            'title': Markup(page.title),
-            'summary': Markup(page.summary),
-            'content': Markup(page.content),
-            } if page else None)
-
-    def index_of(self, cat):
-        index = {
-            'index': [],
-            'date': datetime.today(),
-            'url': '/' + cat,
-            'breadcrumb': self._breadcrumb(cat),
-            }
-        for p in self.pages():
-            if p.startswith(cat):
-                index['index'].append(self.content_of(p))
-        return index
-
-    def _breadcrumb(self, p):
-        breadcrumb = ['/']
-        for crumb in p.split('/')[:-1]:
-            breadcrumb.append(breadcrumb[-1] + crumb + '/')
-
     def add(self, p, contents):
         if contents[0]:
             page = Page(
@@ -73,7 +44,6 @@ class AppEngine(Database):
                 summary=db.Text(contents[3], 'utf-8'),
                 content=db.Text(contents[4], 'utf-8'),
                 version=contents[5],
-                breadcrumb=self._breadcrumb(p),
                 )
             page.put()
             return ('add', p)
@@ -92,3 +62,32 @@ class AppEngine(Database):
     def record(self, version, updates):
         Version(key_name=version, changes=[' '.join([p[0], p[1]]) for p in updates]).put()
         return (version, updates)
+
+    def content_of(self, p):
+        page = Page.get_by_key_name(p)
+        return ({
+            'url': p,
+            'date': page.date,
+            'title': Markup(page.title),
+            'summary': Markup(page.summary),
+            'content': Markup(page.content),
+            'breadcrumb': self._breadcrumb(p),
+            } if page else None)
+
+    def index_of(self, cat):
+        index = {
+            'url': cat,
+            'index': [],
+            'date': datetime.today(),
+            'breadcrumb': self._breadcrumb(cat),
+            }
+        for p in self.pages():
+            if p.startswith(cat):
+                index['index'].append(self.content_of(p))
+        return index
+
+    def _breadcrumb(self, p):
+        breadcrumb = ['/']
+        for crumb in p.split('/')[1:-1]:
+            breadcrumb.append(breadcrumb[-1] + crumb)
+        return breadcrumb

@@ -1,16 +1,20 @@
 {# -*- mode: jinja -*- #}
 {% extends "base" %}
 
-{% macro link(url, title) %}
-   <a href="{{'/' + url}}">{{title}}</a>
-{% endmacro %}
-
 {% block content %}
- {{ icon(url) }}  
+ 
+ {% if url != '/' %}   
+ {{ navigator(breadcrumb, titles[url]) }}
+ {% endif %}
+
  <dl>
   {% for p in index | sort (attribute='date', reverse=True) %}
-     <dt> {{ link(p.url, p.title) }} <span class='date'> {{ p.date.strftime('%d %b, %Y') }}</span> </dt>
+     <dt> 
+        <a href="{{p.url}}">{{p.title}}</a>
+        <span class='date'> {{ p.date.strftime('%d %b, %Y') }}</span> 
+     </dt>
      <dd> {{ p.summary }} </dd>
   {% endfor %}
  </dl>
+
 {% endblock %}

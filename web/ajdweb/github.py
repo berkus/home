@@ -27,7 +27,7 @@ class GitHub:
     def pages(self):
         r = urlopen('{0}?recursive=1'.format(self._root['url'])).read()
         tree = [t for t in json.loads(r)['tree'] if t['type'] == 'blob']
-        self._pages = { splitext(t['path'])[0] : (t['sha'], t['url']) for t in tree }
+        self._pages = { '/' + splitext(t['path'])[0] : (t['sha'], t['url']) for t in tree }
         return set(self._pages.iterkeys())
 
     def version_of(self, p):
