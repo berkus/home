@@ -3,18 +3,17 @@
 
 {% block content %}
  
- {% if url != '/' %}   
- {{ navigator(breadcrumb, titles[url]) }}
- {% endif %}
+  {% if url != '/' %}   
+  {{ navigator(breadcrumb, titles[url]) }}
+  {% endif %}
 
- <dl>
-  {% for p in index | sort (attribute='date', reverse=True) %}
-     <dt> 
-        <a href="{{p.url}}">{{p.title}}</a>
-        <span class='date'> {{ p.date.strftime('%d %b, %Y') }}</span> 
-     </dt>
-     <dd> {{ p.summary }} </dd>
-  {% endfor %}
- </dl>
-
+  <div class="index">
+   {% for p in index | sort (attribute='date', reverse=True) %}
+     <div class="{{loop.cycle('page left', 'page right')}}" > 
+        <a class="title" href="{{p.url}}">{{p.title}}</a>
+        <div class="date"> {{ p.date.strftime('%d %b, %Y') }}</div> 
+        <div class="entry"> {{ p.summary }} </div>
+     </div>
+   {% endfor %}
+  </div>
 {% endblock %}
