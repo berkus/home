@@ -107,6 +107,11 @@
        (format "python %s/python-tidy.py" my-elisp-dir) t t))
     (goto-char position)))
 
+
+;;pdb setup, note the python version
+(setq pdb-path '/usr/lib/python2.7/pdb.py
+      gud-pdb-command-name (symbol-name pdb-path))
+
 ;; add hooks
 (add-hook 'c-mode-common-hook 'my-c-mode-settings)
 (add-hook 'python-mode-hook 'my-python-settings)
@@ -115,7 +120,7 @@
 (put 'downcase-region 'disabled nil)
 
 ;;load extra packages
-(require 'p4)
+;(require 'p4)
 (require 'epa)
 (require 'jinja)
 (require 'uniquify)
