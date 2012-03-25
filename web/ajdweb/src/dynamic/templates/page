@@ -1,0 +1,7 @@
+{# -*- mode: jinja -*- #}
+{% extends "base" %}
+
+{% block content %}
+{{ navigator(breadcrumb, title) }}
+<article>{{ content }} </article>
+{% endblock %}
