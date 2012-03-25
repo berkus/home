@@ -1,0 +1,17 @@
+This folder contains the python code that realizes my website. 
+To recreate the workspace run the following:
+
+1. virtualenv --distribute WEB (using a name other than "WEB" will require you to edit ".gitignore"
+   and recreate the link in ajdweb/dynamic/lib)
+2. source WEB/bin/activate
+3. pip install webob
+4. pip install Paste
+5. pip install webapp2
+6. pip install Jinja2
+7. pip install GitPython
+8. pip install BeautifulSoup4
+9. cd ajdweb
+10. python -m unittest dynamic.test.smoke.SmokeTest
+
+If the SmokeTest runs fine, you're all set.
+
