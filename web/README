@@ -1,17 +1,18 @@
-This folder contains the python code that realizes my website. 
-To recreate the workspace run the following:
+This folder contains the python code that realizes my website. Managing third-party dependencies was
+getting more and more painful, so I moved to using virtualenv. The flip side of the idea is that the
+code checked out of git isn't ready for use. I need to recreate the environment again. This note (to
+myself) is a list of steps for recreating the workspace for a fresh checkout.
 
-1. virtualenv --distribute WEB (using a name other than "WEB" will require you to edit ".gitignore"
-   and recreate the link in ajdweb/dynamic/lib)
-2. source WEB/bin/activate
-3. pip install webob
-4. pip install Paste
-5. pip install webapp2
-6. pip install Jinja2
-7. pip install GitPython
-8. pip install BeautifulSoup4
-9. cd ajdweb
-10. python -m unittest dynamic.test.smoke.SmokeTest
+- virtualenv --distribute WEB (using a name other than "WEB" will require changes to ".gitignore")
+- source WEB/bin/activate
+- pip install webob
+- pip install Paste
+- pip install webapp2
+- pip install Jinja2
+- pip install GitPython
+- pip install BeautifulSoup4
+- ln -s WEB/<lib>/site-packages ajdweb/dynamic/lib (or Junction)
+- Edit ajdweb/dynamic/test/__init__.py and point it to where you have the GAE SDK installed.
+- python -m unittest dynamic.test.smoke.SmokeTest
 
 If the SmokeTest runs fine, you're all set.
-
