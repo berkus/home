@@ -10,5 +10,4 @@ dev_appserver.fix_sys_path()
 # from github import GithubTest
 # from localgit import LocalGitTest
 # from appengine import AppEngineTest
-
 from smoke import SmokeTest
