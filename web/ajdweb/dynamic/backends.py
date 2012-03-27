@@ -18,6 +18,12 @@ def _localgit():
     return LocalGit(config)
 
 
+def _sqldb():
+    from sqldb import SqlDb
+    config = {'DB': 'sqlite:///:memory:', 'DEBUG': False}
+    return SqlDb(config)
+
+
 def database():
     return _appengine()
 

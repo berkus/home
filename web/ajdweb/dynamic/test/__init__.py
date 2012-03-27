@@ -7,7 +7,6 @@ sys.path.insert(0, sdk_path)
 import dev_appserver
 dev_appserver.fix_sys_path()
 
-# from github import GithubTest
-# from localgit import LocalGitTest
-# from appengine import AppEngineTest
-from smoke import SmokeTest
+from database import SqlDbTest, AppEngineTest
+from repository import LocalGitTest, GithubTest
+from smoke import AppEngineWithLocalGit, SqlDbWithLocalGit, AppEngineWithGithub, SqlDbWithGithub
