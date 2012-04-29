@@ -14,13 +14,13 @@ def _github():
 
 def _localgit():
     from localgit import LocalGit
-    config = {'REPO': '/tmp/dummy', 'BRANCH': 'pages/html'}
+    config = {'REPO': '/Users/aldrin/Home', 'BRANCH': 'web/html'}
     return LocalGit(config)
 
 
 def _sqldb():
     from sqldb import SqlDb
-    config = {'DB': 'sqlite:///:memory:', 'DEBUG': False}
+    config = {'DB': 'sqlite:///:memory:', 'DEBUG': True}
     return SqlDb(config)
 
 

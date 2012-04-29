@@ -1,7 +1,7 @@
 {# -*- mode: jinja -*- #}
 {% extends "base" %}
-
 {% block content %}
-{{ navigator(breadcrumb, title) }}
-<article>{{ content }} </article>
+   <article class="sixteen columns">
+     {{ content }} 
+   </article>
 {% endblock %}

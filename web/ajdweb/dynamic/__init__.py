@@ -2,7 +2,7 @@
 
 import sys
 from os.path import join, abspath, dirname
-sys.path.append(abspath(join(dirname(__file__),'lib')))
+sys.path.append(abspath(join(dirname(__file__), 'lib')))
 
 import webapp2
 app = webapp2.WSGIApplication(debug=True)

@@ -11,7 +11,7 @@ class LocalGit:
         r = repo.head.commit.tree
         for b in self._branch.split('/'):
             for t in r:
-                if t.path == b:
+                if t.path.split('/')[-1] == b:
                     r = t
                     break
         self._root = r

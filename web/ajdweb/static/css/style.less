@@ -1,0 +1,54 @@
+@text: black;
+@lighter-text: gray;
+@heading-color: #0079AA;
+
+.container { 
+
+    article {
+        text-align: justify;
+    }
+
+    footer {
+        font-size:50%;
+        text-align:center;
+    }
+
+    pre {
+        font-size: 90%;
+        font-family: Monaco, Consolas;
+    }
+
+    h1 {
+        font-size: 200%;
+        color: @heading-color;
+    }
+
+    h2 {
+        font-size: 150%;
+        color: @heading-color;
+    }
+
+    .date {
+        font-size: 75%;
+        color: @lighter-text;
+    }
+
+    .page {
+        overflow: hidden;
+        text-overflow: clip;
+    }
+
+    .icon {
+        font-family: 'Pictos Custom';
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .hover { cursor: pointer; }
+
+    .title {
+        a {
+            color: @heading-color;
+            text-decoration: none;
+        }
+    }
+}

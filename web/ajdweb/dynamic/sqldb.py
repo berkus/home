@@ -127,6 +127,7 @@ class SqlDb(Database):
             'today': datetime.today(),
             }
         for p in self.pages():
+            print p
             if p.startswith(cat):
                 index['pages'].append(self.content_of(p))
         return index

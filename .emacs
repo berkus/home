@@ -53,6 +53,7 @@
 (add-to-list 'auto-mode-alist '("\\.m" . octave-mode))
 (add-to-list 'auto-mode-alist '("\\.yaml" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.ps1" . powershell-mode))
+(add-to-list 'auto-mode-alist '(".*[Cc]make.*" . cmake-mode))
 (add-to-list 'auto-mode-alist '("\\([Ss][Cc]onstruct\\|[Ss][Cc]onscript\\)" . python-mode))
 
 ;; global defaults
@@ -125,6 +126,7 @@
 (require 'jinja)
 (require 'uniquify)
 (require 'yaml-mode)
+(require 'cmake-mode)
 (require 'protobuf-mode)
 (require 'powershell-mode)
 (require 'graphviz-dot-mode)

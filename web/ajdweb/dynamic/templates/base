@@ -1,41 +1,53 @@
 {# -*- mode: jinja -*- #}
-{% set titles = { '/': 'Aldrin\'s Pages', '/tech': 'Technical' } %}
-{% set icons = { '/tech': '/static/img/tech.png' } %}
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
 
-{% macro navigator(breadcrumb, last) %}
-   <nav>
-    <ul>
-      {% for crumb in breadcrumb %}
-      <li> <a href="{{crumb}}">{{titles[crumb]}}</a> </li>
-      {% endfor %}
-      <li class='last'> {{ last }} </li>      
-    </ul>
-  </nav>   
-{% endmacro %}
+<!-- Basic Page Needs
+================================================== -->
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<meta name="author" content="Aldrin D'Souza">
 
-{% macro icon(name) %}
-   <div class='icon'>
-      <img src="{{icons[name]}}"/>
-   </div>
-{% endmacro %}
+<!-- Mobile Specific Metas
+================================================== -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-<!doctype html>
-<html class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <title>{{ title }}</title>
-    <meta name="author" content="Aldrin D'Souza"/>
-    <meta name="viewport" content="width=device-width"/>
-    <link rel="stylesheet" href="/static/css/normalize.css" media="screen, projection"/>
-    <link rel="stylesheet" href="/static/css/style.css" media="screen, projection"/>
-    <link rel="stylesheet" href="/static/css/print.css" media="print"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-    <script src="/static/js/libs/modernizr-2.5.3.min.js"></script>
-    <script src="/static/js/libs/jquery-1.7.1.min.js"></script>
-    <script src="/static/js/ajdweb.js"></script>
-  </head>
-  <body>
-    {%block content %}{% endblock %}
-    <footer>&copy; {{date.strftime('%Y')}}, Aldrin D'Souza</footer>
-  </body>
+<!-- CSS
+================================================== -->
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/skeleton.css">
+<link rel="stylesheet" href="/static/css/layout.css">
+<link rel="stylesheet" href="/static/css/print.css" media="print">
+<link rel="stylesheet/less" type="text/css" href="/static/css/style.less">
+<script type="text/javascript" src="/static/js/libs/less-1.3.0.min.js"></script>
+<!--[if lt IE 9]>
+<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<!--<![endif]-->
+<!-- <script type="text/javascript" src="http://use.typekit.com/nac0juy.js"></script> -->
+<!-- <script type="text/javascript">try{Typekit.load();}catch(e){}</script> -->
+<!-- Favicons
+================================================== -->
+<link rel="shortcut icon" href="/static/img/favicon.ico">
+<link href="//get.pictos.cc/fonts/1580/1" rel="stylesheet" type="text/css">
+<link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/static/img/apple-touch-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/static/img/apple-touch-icon-114x114.png">
+</head>
+<body>
+<div class="container">
+  {%block content %}{% endblock %}
+  <footer class="sixteen columns">&copy; {{today.strftime('%Y')}}, Aldrin D'Souza</footer>
+</div>
+<!-- JS
+================================================== -->
+<script src="/static/js/libs/modernizr-2.5.3.min.js"></script>
+<script src="/static/js/libs/jquery-1.7.1.min.js"></script>
+<script src="/static/js/ajdweb.js"></script>
+<!-- End Document
+================================================== -->
+</body>
 </html>
