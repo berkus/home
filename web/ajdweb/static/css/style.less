@@ -1,6 +1,5 @@
-@text: black;
-@lighter-text: gray;
 @heading-color: #0079AA;
+@text-color-light: gray;
 
 .container { 
 
@@ -30,25 +29,14 @@
 
     .date {
         font-size: 75%;
-        color: @lighter-text;
-    }
-
-    .page {
-        overflow: hidden;
-        text-overflow: clip;
-    }
-
-    .icon {
-        font-family: 'Pictos Custom';
-        -webkit-font-smoothing: antialiased;
+        display: block;
+        color: @text-color-light;
     }
 
     .hover { cursor: pointer; }
 
-    .title {
-        a {
-            color: @heading-color;
-            text-decoration: none;
-        }
+    .title a {
+        color: @heading-color;
+        text-decoration: none;
     }
 }
