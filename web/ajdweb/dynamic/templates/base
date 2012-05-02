@@ -27,8 +27,8 @@
 <!--[if lt IE 9]>
 <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 <!--<![endif]-->
-<!-- <script type="text/javascript" src="http://use.typekit.com/nac0juy.js"></script> -->
-<!-- <script type="text/javascript">try{Typekit.load();}catch(e){}</script> -->
+<script type="text/javascript" src="http://use.typekit.com/mim1lpi.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
 <!-- Favicons
 ================================================== -->
 <link rel="shortcut icon" href="/static/img/favicon.ico">
