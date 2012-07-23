@@ -47,10 +47,10 @@
 (setq load-path (cons my-elisp-dir load-path))
 
 ;; file mode settings
-(add-to-list 'auto-mode-alist '("\\.txt" . org-mode))
+(add-to-list 'auto-mode-alist '("\\.txtm" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.xml" . nxml-mode))
 (add-to-list 'auto-mode-alist '("\\.xsd" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.m" . octave-mode))
+(add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
 (add-to-list 'auto-mode-alist '("\\.yaml" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.ps1" . powershell-mode))
 (add-to-list 'auto-mode-alist '(".*[Cc]make.*" . cmake-mode))
@@ -78,8 +78,7 @@
   (setq c-basic-offset 2)
   (setq indent-tabs-mode nil)
   (local-set-key (kbd "M-i") 'astyle-buffer)
-
-(add-hook 'before-save-hook 'whitespace-cleanup nil t))
+  (add-hook 'before-save-hook 'whitespace-cleanup nil t))
 
 (defun my-python-settings()
   (setq indent-tabs-mode nil)
@@ -120,10 +119,6 @@
        (point-min) (point-max)
        (format "python %s/js-beautify -i -s 2 -j" my-elisp-dir) t t))
     (goto-char position)))
-
-;;pdb setup, note the python version
-(setq pdb-path '/usr/lib/python2.7/pdb.py
-      gud-pdb-command-name (symbol-name pdb-path))
 
 ;; add hooks
 (add-hook 'c-mode-common-hook 'my-c-mode-settings)
