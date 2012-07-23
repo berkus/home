@@ -86,6 +86,9 @@
   (local-set-key (kbd "M-i") 'python-tidy-buffer)
   (add-hook 'before-save-hook 'whitespace-cleanup nil t))
 
+(defun my-js-settings()
+  (local-set-key (kbd "M-i") 'js-tidy-buffer))
+
 (defun astyle-buffer()
   "invoke astyle on the buffer."
   (interactive)
@@ -94,7 +97,7 @@
       (if (executable-find "astyle")
           (shell-command-on-region
            (point-min) (point-max)
-           "astyle -s2 -A1 -N -S -L -Y -w -xd -J -o -U -k3 -p -H -z2" t t)
+           "astyle -s2 -A1 -N -S -L -Y -w -J -o -U -k3 -p -H -z2" t t)
         (message "can't find astyle.")))
     (goto-char position)))
 
@@ -108,6 +111,15 @@
        (format "python %s/python-tidy.py" my-elisp-dir) t t))
     (goto-char position)))
 
+(defun js-tidy-buffer()
+  "invoke js beautifier tidy on the buffer."
+  (interactive)
+  (let ((position (point)))
+    (progn
+      (shell-command-on-region
+       (point-min) (point-max)
+       (format "python %s/js-beautify -i -s 2 -j" my-elisp-dir) t t))
+    (goto-char position)))
 
 ;;pdb setup, note the python version
 (setq pdb-path '/usr/lib/python2.7/pdb.py
@@ -116,17 +128,18 @@
 ;; add hooks
 (add-hook 'c-mode-common-hook 'my-c-mode-settings)
 (add-hook 'python-mode-hook 'my-python-settings)
+(add-hook 'js-mode-hook 'my-js-settings)
 
 ;; enabled commands.
 (put 'downcase-region 'disabled nil)
 
 ;;load extra packages
-;(require 'p4)
 (require 'epa)
 (require 'jinja)
 (require 'uniquify)
 (require 'yaml-mode)
 (require 'cmake-mode)
+(require 'markdown-mode)
 (require 'protobuf-mode)
 (require 'powershell-mode)
 (require 'graphviz-dot-mode)
@@ -138,16 +151,3 @@
     (setq erlang-root-dir (getenv "ERLANG_ROOT"))
     (setq exec-path (cons (concat (getenv "ERLANG_ROOT") "/bin") exec-path))
     (require 'erlang-start)))
-
-;; website
-(setq org-publish-project-alist
-      '(("www"
-         :base-directory "~/home/web/pages"
-         :publishing-directory "~/home/web/html"
-         :base-extension "org"
-         :recursive t
-         :section-numbers nil
-         :table-of-contents nil
-         :style-include-default nil
-         :style-include-scripts nil
-         :org-publish-use-timestamps-flag nil)))
