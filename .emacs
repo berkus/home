@@ -1,4 +1,5 @@
 ;; key bindings
+(global-set-key (kbd "M-c") 'compile)
 (global-set-key (kbd "M-l") 'goto-line)
 (global-set-key (kbd "C-/") 'other-window)
 (global-set-key (kbd "M-e") 'ediff-buffers)
@@ -11,7 +12,6 @@
 (global-set-key (kbd "M-p") 'org-publish-current-project)
 
 ;; global mode variable customizations
-(epa-file-enable)
 (setq scroll-step 1)
 (setq iswitchb-mode t)
 (setq icomplete-mode t)
@@ -86,6 +86,7 @@
   (add-hook 'before-save-hook 'whitespace-cleanup nil t))
 
 (defun my-js-settings()
+  (setq c-basic-offset 2)
   (local-set-key (kbd "M-i") 'js-tidy-buffer))
 
 (defun astyle-buffer()
@@ -129,7 +130,6 @@
 (put 'downcase-region 'disabled nil)
 
 ;;load extra packages
-(require 'epa)
 (require 'jinja)
 (require 'uniquify)
 (require 'yaml-mode)
