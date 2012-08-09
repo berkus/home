@@ -1,10 +1,16 @@
+;; what's up?
+(define-key input-decode-map "\e\eOA" [(meta up)])
+(define-key input-decode-map "\e\eOB" [(meta down)])
+
 ;; key bindings
 (global-set-key (kbd "M-c") 'compile)
 (global-set-key (kbd "M-l") 'goto-line)
 (global-set-key (kbd "C-/") 'other-window)
 (global-set-key (kbd "M-e") 'ediff-buffers)
 (global-set-key (kbd "<f10>") 'server-edit)
+(global-set-key (kbd "M-<up>") 'move-line-up)
 (global-set-key (kbd "<f9>") 'toggle-read-only)
+(global-set-key (kbd "M-<down>") 'move-line-down)
 (global-set-key (kbd "C-<right>") 'next-buffer)
 (global-set-key (kbd "C-<left>") 'previous-buffer)
 (global-set-key (kbd "<f2>") 'delete-other-windows)
@@ -120,6 +126,20 @@
        (point-min) (point-max)
        (format "python %s/js-beautify -i -s 2 -j" my-elisp-dir) t t))
     (goto-char position)))
+
+
+;; move line up
+(defun move-line-up ()
+  (interactive)
+  (transpose-lines 1)
+  (previous-line 2))
+
+;; move line down
+(defun move-line-down ()
+  (interactive)
+  (next-line 1)
+  (transpose-lines 1)
+  (previous-line 1))
 
 ;; add hooks
 (add-hook 'c-mode-common-hook 'my-c-mode-settings)
