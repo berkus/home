@@ -21,6 +21,7 @@
 (setq scroll-step 1)
 (setq iswitchb-mode t)
 (setq icomplete-mode t)
+(setq js-indent-level 2)
 (setq backup-inhibited t)
 (setq case-fold-search t)
 (setq-default tab-width 2)
@@ -126,7 +127,6 @@
        (point-min) (point-max)
        (format "python %s/js-beautify -i -s 2 -j" my-elisp-dir) t t))
     (goto-char position)))
-
 
 ;; move line up
 (defun move-line-up ()
