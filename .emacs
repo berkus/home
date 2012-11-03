@@ -54,14 +54,16 @@
 (setq load-path (cons my-elisp-dir load-path))
 
 ;; file mode settings
-(add-to-list 'auto-mode-alist '("\\.txtm" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.xml" . nxml-mode))
 (add-to-list 'auto-mode-alist '("\\.xsd" . nxml-mode))
 (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
 (add-to-list 'auto-mode-alist '("\\.yaml" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.md" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.txt" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.ps1" . powershell-mode))
 (add-to-list 'auto-mode-alist '("\\.json" . javascript-mode))
-(add-to-list 'auto-mode-alist '(".*[Cc]make.*" . cmake-mode))
+(add-to-list 'auto-mode-alist '(".*[Cc][Mm]ake.*" . cmake-mode))
+
 (add-to-list 'auto-mode-alist '("\\([Ss][Cc]onstruct\\|[Ss][Cc]onscript\\)" . python-mode))
 
 ;; global defaults
