@@ -34,7 +34,7 @@ to jobs that I submit during the lifetime of the instance. The destructor must w
 submitted job is completed and then clean up everything. As far as the tasks go, anything that is
 invokable must be acceptable.
 
-With those requirements in mind, [here][impl]'s an complete implementation:
+With those requirements in mind, [here's][impl] an complete implementation:
 
 ```` c++
 #ifndef AJD_EXECUTOR_H_
@@ -89,6 +89,6 @@ variables to signal job arrivals, no shutdown flags, no nothing. Just the neat, 
 this in a complete application, but how cool is that for a start?
 
 [asio]: http://www.boost.org/doc/libs/1_47_0/doc/html/boost_asio.html    
-[impl]: https://github.com/aldrin/home/blob/master/web/code/c++/boost/executor_test.h
-[test]: https://github.com/aldrin/home/blob/master/web/code/c++/boost/executor_test.cc
+[impl]: https://github.com/aldrin/home/blob/master/web/code/c%2B%2B/boost/executor.h
+[test]: https://github.com/aldrin/home/blob/master/web/code/c%2B%2B/boost/executor.cpp
 [java]: http://download.oracle.com/javase/6/docs/api/java/util/concurrent/ThreadPoolExecutor.html        
