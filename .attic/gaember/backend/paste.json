@@ -1,0 +1,26 @@
+{
+  "filesystem": {
+    "root": "../content"
+  },
+
+  "paste": {
+    "port": 8084,
+    "host": "localhost"
+  },
+
+  "redis": {
+    "connection": "tcp",
+    "host": "localhost",
+    "port": 6379,
+    "db": 0
+  },
+
+  "handlers": {
+    "headers": {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Origin": "http://localhost",
+      "Access-Control-Allow-Headers": "origin, content-type, accept"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{{title}}</title>
+    <meta name="author" content="Aldrin D'Souza">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://localhost/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost/assets/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost/assets/css/ajdweb.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost/assets/css/code.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="span1"></div>
+        <article class="span10">
+          {%block content %}{% endblock %}
+          <footer>
+            <div>
+              <a href="/#/"><i class="icon-home"></i></a>
+              <a href="http://twitter.com/ajdz"><i class="icon-twitter"></i></a>
+              <a href="http://linkedin.com/in/aldrin"><i class="icon-linkedin"></i></a>
+            </div>
+            <small class="muted">&copy; {{thisYear}} Aldrin D'Souza</small>
+          </footer>
+        </article>
+        <div class="span1"></div>
+      </div>
+    </div>
+    <script src="http://localhost/assets/js/libs/highlight.js"></script>
+  </body>
+</html>

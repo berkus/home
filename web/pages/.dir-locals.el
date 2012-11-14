@@ -1,0 +1,1 @@
+((nil . ((compile-command . "cd /Users/aldrin/Github/aldrin/aldrin.github.com/.pelican; make html"))))

@@ -2,3 +2,4 @@
 *.elc
 sandbox/*
 .DS_Store
+web/output/*
