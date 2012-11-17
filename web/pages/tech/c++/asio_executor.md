@@ -85,7 +85,7 @@ namespace ajd
 As someone who has written shabbily stitched executors in the past, I can't help but marvel at the
 economy of this implementation. No dispatch queues, no mutexes to guard share state, no condition
 variables to signal job arrivals, no shutdown flags, no nothing. Just the neat, power-packed
-=asio::io_service= facade and we're done. Of course, there's still quite a bit left before we use
+`asio::io_service` facade and we're done. Of course, there's still quite a bit left before we use
 this in a complete application, but how cool is that for a start?
 
 [asio]: http://www.boost.org/doc/libs/1_47_0/doc/html/boost_asio.html    
