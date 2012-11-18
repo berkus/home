@@ -1,0 +1,14 @@
+PROJECT(Crypto)
+SET(CMAKE_CXX_FLAGS "--std=c++11 --stdlib=libc++")
+FIND_PACKAGE(OpenSSL)
+IF(OPENSSL_FOUND)
+  INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
+ENDIF()
+
+SET(FEATURES crypto)
+
+FOREACH(feature ${FEATURES})
+  ADD_EXECUTABLE(${feature} ${feature}.cpp)
+  TARGET_LINK_LIBRARIES(${feature} ${OPENSSL_LIBRARIES})
+  ADD_TEST(${feature}_test ${feature})
+ENDFOREACH()

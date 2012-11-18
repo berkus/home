@@ -1,7 +1,7 @@
 Title: Thread-Pool Executor using Boost.ASIO
 Tags:  C++, Boost
 Date:  07/09/2011
-Slug:  asio_executor
+Slug:  asio-executor
 
 Consider the problem of writing a thread pool executor: i.e. an abstraction that takes arbitrary
 user defined tasks and executes them concurrently over a pool of threads. Here's a (slightly
