@@ -1,9 +1,20 @@
 PROJECT(Crypto)
-SET(CMAKE_CXX_FLAGS "--std=c++11 --stdlib=libc++")
+
 FIND_PACKAGE(OpenSSL)
 IF(OPENSSL_FOUND)
   INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
 ENDIF()
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(CMAKE_CXX_FLAGS "--std=c++11 --stdlib=libc++")
+ENDIF()
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  SET(CMAKE_CXX_FLAGS "--std=c++0x")
+ENDIF()
+
+
+
 
 SET(FEATURES crypto)
 
