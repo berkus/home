@@ -12,9 +12,6 @@ namespace ajd
 {
   namespace crypto
   {
-    /// A typedef to represent bytes
-    typedef unsigned char byte;
-
     /// Checks if the underlying crypto system has seeded its PRNG sufficiently. If this method
     /// returns false, you should consider using OpenSSL RAND_add to seed the PRNG.
 
@@ -22,24 +19,25 @@ namespace ajd
     bool random_ok() { return RAND_status() == 1; }
 
     /// Algorithms for generating random bytes. The interface and implementation are the similar to
-    /// std::generate_random_n and std::generate_random with the generator argument fixed to OpenSSL PRNG.
+    /// std::generate_random_n and std::generate_random with the generator argument fixed to OpenSSL
+    /// PRNG.
 
     /// _Effects_: generate_random invokes RAND_bytes and assigns the returned bytes through all the
-    /// iterators in the range [first,last). generate_random_n does the same through all the iterators in
-    /// the range [first,first + n) if n is positive, otherwise it does nothing.
+    /// iterators in the range [first,last). generate_random_n does the same through all the
+    /// iterators in the range [first,first + n) if n is positive, otherwise it does nothing.
 
-    /// _Requires_: The iterator must belong to a container of ajd::crypto::byte
+    /// _Requires_: The iterator must belong to a container of unsigned char
 
     /// _Returns_: generate_random_n returns `first + n`
     template<typename OutputIterator, typename Size>
     OutputIterator generate_random_n(OutputIterator first, Size n)
     {
       typedef typename std::iterator_traits<OutputIterator>::value_type input_type;
-      static_assert(std::is_same<byte, input_type>::value, "only works with bytes");
+      static_assert(std::is_same<unsigned char, input_type>::value, "value type needs to be unsigned char");
 
       if (n > 0)
       {
-        std::vector<byte> bytes(n);
+        std::vector<unsigned char> bytes(n);
         if (RAND_bytes(&bytes[0], n) == 0)
         {
           throw std::runtime_error("random number generation failed");
