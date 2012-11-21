@@ -1,25 +1,12 @@
-PROJECT(Crypto)
+project(crypto)
+find_package(OpenSSL)
 
-FIND_PACKAGE(OpenSSL)
-IF(OPENSSL_FOUND)
-  INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
-ENDIF()
+enable_cpp11()
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  SET(CMAKE_CXX_FLAGS "--std=c++11 --stdlib=libc++")
-ENDIF()
+if(OPENSSL_FOUND)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  SET(CMAKE_CXX_FLAGS "--std=c++0x")
-ENDIF()
-
-
-
-
-SET(FEATURES crypto)
-
-FOREACH(feature ${FEATURES})
-  ADD_EXECUTABLE(${feature} ${feature}.cpp)
-  TARGET_LINK_LIBRARIES(${feature} ${OPENSSL_LIBRARIES})
-  ADD_TEST(${feature}_test ${feature})
-ENDFOREACH()
+add_executable(crypto crypto.cpp)
+target_link_libraries(crypto ${OPENSSL_LIBRARIES})
+add_test(crypto_test crypto)

@@ -42,7 +42,7 @@ namespace ajd
         {
           throw std::runtime_error("random number generation failed");
         }
-        first = std::copy_n(bytes.begin(), n, first);
+        first = std::copy(bytes.begin(), bytes.end(), first);
       }
       return first;
     }

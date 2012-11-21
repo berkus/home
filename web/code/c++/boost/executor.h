@@ -15,24 +15,20 @@ namespace ajd
   class executor
   {
   public:
-
     executor(size_t n): service_(n), work_(service_)
     {
       for (size_t i = 0; i < n; i++)
       { pool_.create_thread(bind(&io_service::run, &service_)); }
     }
-
     ~executor()
     {
       service_.stop();
       pool_.join_all();
     }
-
     template<typename F> void submit(F task)
     {
       service_.post(task);
     }
-
   protected:
     thread_group pool_;
     io_service service_;

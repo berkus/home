@@ -15,8 +15,8 @@ void test_random_generator()
   assert(random_ok() == true);
 
   // generate an AES-128 key.
-  unsigned char key[16];
-  generate_random_n(key, 16);
+  std::vector<unsigned char> key(16);
+  generate_random_n(key.begin(), 16);
 
   // generate a random 64 bit nonce.
   std::vector<unsigned char> nonce(8);

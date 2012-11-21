@@ -13,14 +13,11 @@ another (lean) implementation using a few bits from the treasure trove of [Boost
 ```` c++
 #include "executor.h"
 
-#define BOOST_TEST_MODULE Executor
-#include <boost/test/unit_test.hpp>
-
 void work() {}
 void other_work(const char *c) {}
 struct functor_work { void operator()() {} };
 
-BOOST_AUTO_TEST_CASE(UsageSyntax)
+void executor_usage()
 {
   ajd::executor e(2);
   e.submit(work);
@@ -54,31 +51,26 @@ namespace ajd
   class executor
   {
   public:
-
     executor(size_t n): service_(n), work_(service_)
     {
       for (size_t i = 0; i < n; i++)
       { pool_.create_thread(bind(&io_service::run, &service_)); }
     }
-
     ~executor()
     {
       service_.stop();
       pool_.join_all();
     }
-
     template<typename F> void submit(F task)
     {
       service_.post(task);
     }
-
   protected:
     thread_group pool_;
     io_service service_;
     io_service::work work_;
   };
 }
-
 #endif // AJD_EXECUTOR_H_
 ````
 

@@ -1,9 +1,9 @@
-PROJECT(C++11)
-SET(CMAKE_CXX_FLAGS "--std=c++11")
+project(c++11)
+
 SET(FEATURES langsupport)
 
-FOREACH(feature ${FEATURES})
-  ADD_EXECUTABLE(${feature} ${feature}.cpp)
-  TARGET_LINK_LIBRARIES(${feature})
-  ADD_TEST(${feature}_test ${feature})
-ENDFOREACH()
+foreach(feature ${FEATURES})
+  add_executable(${feature} ${feature}.cpp)
+  target_link_libraries(${feature})
+  add_test(${feature}_test ${feature})
+endforeach()
