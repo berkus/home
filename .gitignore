@@ -2,4 +2,4 @@
 *.elc
 sandbox/*
 .DS_Store
-web/output/*
+web/code/java/*
