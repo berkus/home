@@ -81,6 +81,6 @@ variables to signal job arrivals, no shutdown flags, no nothing. Just the neat, 
 this in a complete application, but how cool is that for a start?
 
 [asio]: http://www.boost.org/doc/libs/1_47_0/doc/html/boost_asio.html    
-[impl]: https://github.com/aldrin/home/blob/master/web/code/c%2B%2B/boost/executor.h
-[test]: https://github.com/aldrin/home/blob/master/web/code/c%2B%2B/boost/executor.cpp
+[impl]: https://github.com/aldrin/home/blob/master/code/c%2B%2B/boost/executor.h
+[test]: https://github.com/aldrin/home/blob/master/code/c%2B%2B/boost/executor.cpp
 [java]: http://download.oracle.com/javase/6/docs/api/java/util/concurrent/ThreadPoolExecutor.html        

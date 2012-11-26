@@ -1,7 +1,7 @@
 project(crypto)
 find_package(OpenSSL)
 
-enable_cpp11()
+enable_boost()
 
 if(OPENSSL_FOUND)
   include_directories(${OPENSSL_INCLUDE_DIR})

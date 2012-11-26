@@ -1,9 +1,5 @@
 project(tryboost)
-find_package(Boost COMPONENTS system thread)
-
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-endif()
+enable_boost_libraries(system thread)
 
 set(FEATURES executor)
 
