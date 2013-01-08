@@ -1,13 +1,14 @@
+/// Copyright (c) 2013 Aldrin's Notebook (http://a1dr.in). All rights reserved.
+/// You may use any of the code here as long as you retain this copyright notice.
+
 #pragma once
 
-#include <vector>
-#include <cassert>
 #include <stdexcept>
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-#include <boost/utility.hpp>
+#include <boost/array.hpp>
 #include <boost/asio/buffer.hpp>
 
 namespace ajd
@@ -19,71 +20,53 @@ namespace ajd
     using boost::asio::buffer_size;
     using boost::asio::const_buffer;
     using boost::asio::mutable_buffer;
+    /// Checks if the underlying PRNG is sufficiently seeded. In the (exceptional) situation where
+    /// this check returns 'false', you must use the OpenSSL seed routines RAND_seed, RAND_add
+    /// directly to add entropy to the underlying PRNG.
+    bool prng_ok() { return RAND_status() == 1; }
 
-    bool random_ok() { return RAND_status() == 1; }
-
-    void random(mutable_buffer b)
+    /// Fills the data buffer with len random bytes. Typically, this overload should not be used and
+    /// the variant which takes high leven containers must be preferred.
+    void fill_random(unsigned char *data, std::size_t len)
     {
-      if (!RAND_bytes(buffer_cast<unsigned char *>(b), buffer_size(b)))
+      if (!RAND_bytes(data, len))
       {
         throw std::runtime_error("random number generation failed");
       }
     }
 
-    class cipher : boost::noncopyable
+    /// Fills the passed container with random bytes. The method works with any container that can
+    /// be converted to a boost::asio::mutable_buffer using the boost::asio::buffer helper.
+    template<typename C> void fill_random(C &c)
     {
-    public:
-      enum mode { encrypt, decrypt };
+      mutable_buffer b(buffer(c));
+      fill_random(buffer_cast<unsigned char *>(b), buffer_size(b));
+    }
 
-      cipher(mode m, const_buffer key, const_buffer iv): mode_(m)
+    /// This typedef is just a shorthand for an AES-128 key
+    typedef boost::array<unsigned char, 16> symmetric_key;
+    /// This typedef is just a shorthand for an AES-128 IV
+    typedef boost::array<unsigned char, 16> initialization_vector;
+
+    /// Derives a key from a password using PBKDF2. The hash function is fixed to SHA256 and the
+    /// default iteration count is 10000. The password and salt parameters can be any contiguous
+    /// container convertible to a boost::asio::const_buffer using boost::asio::buffer. The key
+    /// parameter must be convertible to boost::asio::mutable_buffer (use symmetric_key).
+    template <typename C1, typename C2, typename C3>
+    void derive_key(C3 &key, const C1 &passwd, const C2 &salt, int iterations = 10000)
+    {
+      const_buffer s(buffer(salt));
+      mutable_buffer k(buffer(key));
+      const_buffer p(buffer(passwd));
+
+      if (!PKCS5_PBKDF2_HMAC(
+            buffer_cast<const char *>(p), buffer_size(p),
+            buffer_cast<const unsigned char *>(s), buffer_size(s),
+            iterations, EVP_sha256(),
+            buffer_size(k), buffer_cast<unsigned char *>(k)))
       {
-        assert(buffer_size(key) == 16);
-        assert(buffer_size(key) == buffer_size(iv));
-        const unsigned char *i(buffer_cast<const unsigned char *>(iv));
-        const unsigned char *k(buffer_cast<const unsigned char *>(key));
-
-        EVP_CIPHER_CTX_init(&ctx_);
-        if (!
-            (
-              mode_ == encrypt ?
-              EVP_EncryptInit_ex(&ctx_, EVP_aes_128_ctr(), NULL, k, i)
-              :
-              EVP_DecryptInit_ex(&ctx_, EVP_aes_128_ctr(), NULL, k, i)
-            )
-           )
-        {
-          EVP_CIPHER_CTX_cleanup(&ctx_);
-          throw std::runtime_error("random number generation failed");
-        }
+        throw std::runtime_error("password based key derivation failed");
       }
-
-      void transform(const_buffer in_buffer, mutable_buffer out_buffer)
-      {
-        int outl;
-        int inl(buffer_size(in_buffer));
-        unsigned char *out(buffer_cast<unsigned char *>(out_buffer));
-        const unsigned char *in(buffer_cast<const unsigned char *>(in_buffer));
-        if (!
-            (
-              mode_ == encrypt ?
-              EVP_EncryptUpdate(&ctx_, out, &outl, in, inl)
-              :
-              EVP_DecryptUpdate(&ctx_, out, &outl, in, inl)
-            )
-           )
-        {
-          throw std::runtime_error("random number generation failed");
-        }
-      }
-
-      ~cipher()
-      {
-        EVP_CIPHER_CTX_cleanup(&ctx_);
-      }
-
-    private:
-      mode mode_;
-      EVP_CIPHER_CTX ctx_;
-    };
+    }
   }
 }

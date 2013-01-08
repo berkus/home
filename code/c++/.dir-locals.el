@@ -1,1 +1,1 @@
-((nil . ((compile-command . "cd /Users/aldrin/Github/home/web/code/c++/builds; ninja"))))
+((nil . ((compile-command . "cd /Users/aldrin/Github/home/code/c++/builds/ninja; ninja"))))
