@@ -24,14 +24,34 @@ void key_generation()
   crypto::derive_key(key, "password", salt); // password derived key.
 }
 
+void message_digest()
+{
+  using namespace ajd;
+  crypto::hash md;                        // the hash object
+  md.update("hello");                     // add data
+  md.update("world");                     // more data
+  crypto::hash::value sha(md.finalize()); // get the hash
+  assert(sha[0] == '\r');                 // avoid unused-variable warning.
+}
+
+void message_authentication_code()
+{
+  using namespace ajd;
+  crypto::symmetric_key key;               // the hash key
+  crypto::derive_key(key, "pass", "salt"); // password derived key.
+  crypto::hash h(key);                     // the keyed-hash object
+  h.update("hello");                       // add data
+  h.update("world");                       // more data
+  crypto::hash::value mac(h.finalize());   // get the mac
+  assert(mac[0] == '\r');                  // avoid unused-variable warning.
+}
+
 int main()
 {
   random_generation();
   key_generation();
+  message_digest();
 }
-
-
-
 
 // void test_transform()
 // {
