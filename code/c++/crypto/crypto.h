@@ -254,7 +254,7 @@ namespace ajd
 
       ~cipher()
       {
-        //EVP_CIPHER_CTX_cleanup(&context_);
+        EVP_CIPHER_CTX_cleanup(&context_);
       }
     private:
       bool encrypt_;
