@@ -186,3 +186,6 @@ void message_authentication_code()
 ```
 
 #### Symmetric Key Encryption
+
+Encryption is the usually the goal of using crypto primitives. As discussed we have chosen AES-128
+as our cipher, so all encryption we need uses it as our
