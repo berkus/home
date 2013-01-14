@@ -98,12 +98,13 @@ void sha256_tests()
 
   for (size_t i = 0; i < sizeof(tests) / sizeof(struct test); i++)
   {
+    crypto::hash::value value;
     std::vector<unsigned char> message;
     std::vector<unsigned char> expected;
     unhexlify(tests[i].Msg, message);
     unhexlify(tests[i].MD, expected);
     md.update(message);
-    crypto::hash::sha256 value(md.finalize());
+    md.finalize(value);
     assert(std::equal(expected.begin(), expected.end(), value.begin()));
   }
 }
@@ -165,7 +166,9 @@ void hmac_tests()
     unhexlify(tests[i].Key, key);
     unhexlify(tests[i].MAC, expected);
     crypto::hash h(key);
-    assert(std::equal(expected.begin(), expected.end(), h.update(data).finalize().begin()));
+    crypto::hash::value mac;
+    h.update(data).finalize(mac);
+    assert(std::equal(expected.begin(), expected.end(), mac.begin()));
   }
 }
 

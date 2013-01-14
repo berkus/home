@@ -1,5 +1,5 @@
 /// Copyright (c) 2013 Aldrin's Notebook (http://a1dr.in). All rights reserved.
-/// You may use any of the code here as long as you retain this copyright notice.
+/// You may use any this header as long as you retain the two lines of this notice.
 
 #pragma once
 
@@ -24,117 +24,120 @@ namespace ajd
     using boost::asio::const_buffer;
     using boost::asio::mutable_buffer;
 
-    /// Checks if the underlying PRNG is sufficiently seeded. In the (exceptional) situation where
-    /// this check returns 'false', you must use the OpenSSL seed routines RAND_seed, RAND_add
-    /// directly to add entropy to the underlying PRNG.
-    bool prng_ok() { return RAND_status() == 1; }
-
-    /// Check return values from the OpenSSL APIs (private method)
+    /// Check return values from OpenSSL and throw an exception if it failed.
+    /// @param what the logical operation being performed
+    /// @success the return value from OpenSSL API
     void checked_(const char *what, bool success)
     {
       if (!success)
       {
         std::string message(what);
         message += " failed: ";
-        message += ERR_error_string(ERR_get_error(), NULL);
+        message += ERR_get_error();
         throw std::runtime_error(message);
       }
     }
 
-    /// Fills the data buffer with len random bytes. Typically, this overload should not be used and
-    /// the variant which takes high leven containers must be preferred.
-    void fill_random(unsigned char *data, std::size_t len)
-    {
-      checked_("random byte generation",
-               RAND_bytes(data, len));
-    }
+    /// A convenience typedef for a 128 bit block.
+    typedef boost::array<unsigned char, 16> block;
 
-    /// Fills the passed container with random bytes. The method works with any container that can
-    /// be converted to a boost::asio::mutable_buffer using the boost::asio::buffer helper.
+    /// Checks if the  underlying PRNG is sufficiently seeded. In  the (exceptional) situation where
+    /// this check  returns 'false', you  /must/ use the  OpenSSL seed routines  RAND_seed, RAND_add
+    /// directly to add entropy to the underlying PRNG.
+    bool prng_ok() { return RAND_status() == 1; }
+
+    /// Fills the passed container with random bytes.
+    /// @param c  (output) container populated with random bits
     template<typename C> void fill_random(C &c)
     {
       mutable_buffer b(buffer(c));
-      fill_random(buffer_cast<unsigned char *>(b), buffer_size(b));
+      checked_("random bytes", RAND_bytes(buffer_cast<unsigned char *>(b), buffer_size(b)));
     }
 
-    /// An AES block, shorthand type for defining key, iv, salt values.
-    typedef boost::array<unsigned char, 16> block;
-
-    /// Derives a key from a password using PBKDF2. The hash function is fixed to SHA256 and the
-    /// default iteration count is 10000. The password and salt parameters can be any contiguous
-    /// container convertible to a boost::asio::const_buffer using boost::asio::buffer. The key
-    /// parameter must be convertible to boost::asio::mutable_buffer (use crypto::block).
+    /// Derives a  key from a  password and salt  using PBKDF2 with  HMAC-SHA256 as the  chosen PRF.
+    /// Although the routine can generate arbitrary length  keys, it is best to use crypto::block as
+    /// the type for the key  parameter, since it fixes the key length to 128  bit which is what the
+    /// other primitives in the wrapper (crypto::hash, crypto::cipher) require.
+    /// @param key      (output) container populated with the key bits
+    /// @param password (input)  container holding the user password
+    /// @param salt     (input)  container holding the salt bytes
+    /// @param c        (input)  PBKDF2 iteration count (default=10000)
     template <typename C1, typename C2, typename C3>
-    void derive_key(C3 &key, const C1 &passwd, const C2 &salt, int iterations = 10000)
+    void derive_key(C3 &key, const C1 &passwd, const C2 &salt, int c = 10000)
     {
-      const_buffer s(buffer(salt));
-      mutable_buffer k(buffer(key));
       const_buffer p(buffer(passwd));
-      checked_("password based key derivation",
-               PKCS5_PBKDF2_HMAC(
-                 buffer_cast<const char *>(p), buffer_size(p),
-                 buffer_cast<const unsigned char *>(s), buffer_size(s),
-                 iterations, EVP_sha256(),
-                 buffer_size(k), buffer_cast<unsigned char *>(k)));
+      int passlen(buffer_size(p));
+      const char *pass(buffer_cast<const char *>(p));
+
+      const_buffer s(buffer(salt));
+      int saltlen(buffer_size(s));
+      const unsigned char *slt(buffer_cast<const unsigned char *>(s));
+
+      mutable_buffer k(buffer(key));
+      int keylen(buffer_size(k));
+      unsigned char *out(buffer_cast<unsigned char *>(k));
+
+      checked_("key derivation",
+               PKCS5_PBKDF2_HMAC(pass, passlen, slt, saltlen, c, EVP_sha256(), keylen, out));
     }
 
     /// Generates a keyed or a plain cryptographic hash.
     class hash: boost::noncopyable
     {
     public:
-      /// A shorthand typedef for hash value (we're using SHA-256)
-      typedef boost::array<unsigned char, 32> sha256;
+      /// A convenience typedef for a 256 SHA-256 value.
+      typedef boost::array<unsigned char, 32> value;
 
       /// The plain hash constructor. Initializes the underlying hash context.
       hash(): keyed_(false), digest_(EVP_sha256()), md_context_(EVP_MD_CTX_create())
       {
-        checked_("digest initialization",
-                 EVP_DigestInit_ex(md_context_, digest_, NULL));
+        checked_("digest initialization", EVP_DigestInit_ex(md_context_, digest_, NULL));
       }
 
-      /// The keyed hash constructor. Initializes the underlying hash context. The key parameter can
-      /// be any contiguous container convertible to a boost::asio::const_buffer using
-      /// boost::asio::buffer.
+      /// The keyed hash constructor. Initializes the underlying hash context.
+      /// @param key (input) container holding the secret key
       template<typename C>
       hash(const C &key): keyed_(true), digest_(EVP_sha256())
       {
         HMAC_CTX_init(&hmac_context_);
-        const_buffer k(buffer(key));
-        checked_("mac initialization",
-                 HMAC_Init_ex(&hmac_context_, buffer_cast<const void *>(k), buffer_size(k),
-                              digest_, NULL));
+        const_buffer key_buffer(buffer(key));
+        int key_length(buffer_size(key_buffer));
+        const void *k(buffer_cast<const void *>(key_buffer));
+        checked_("mac initialization", HMAC_Init_ex(&hmac_context_, k, key_length, digest_, NULL));
       }
 
-      /// Add the contents of the passed container to the underlying context. This method can be
-      /// invoked multiple times to add data that needs to be digested. The data parameter can be
-      /// any contiguous storage container that can be converted to the boost::asio::const_buffer
-      /// using boost::asio::buffer.
+      /// Add the  contents of the passed  container to the  underlying context. This method  can be
+      /// invoked multiple times to add all the data that needs to be hashed.
+      /// @param data (input) container holding the input data
       template <typename C>
       hash &update(const C &data)
       {
-        const_buffer d(buffer(data));
+        const_buffer b(buffer(data));
+        int l(buffer_size(b));
+        const void *d(buffer_cast<const void *>(b));
         checked_("add data to hash",
                  (keyed_ ?
-                  HMAC_Update(&hmac_context_, buffer_cast<const unsigned char *>(d), buffer_size(d))
-                  : EVP_DigestUpdate(md_context_, buffer_cast<const void *>(d), buffer_size(d))));
+                  HMAC_Update(&hmac_context_, (const unsigned char *)d, l)
+                  : EVP_DigestUpdate(md_context_, d, l)));
         return *this;
       }
 
-      /// Get the resultant hash value. Returns a crypto::hash::value structure that contains the 32
-      /// byte SHA256 hash value of the data added to the digest. This method also reinitializes the
-      /// underlying context, so the instance can be reused to compute more hashes.
-      sha256 finalize()
+      /// Get the  resultant hash value. This  method also reinitializes the  underlying context, so
+      /// the same instance can be reused to compute more hashes.
+      /// @param sha (output) container populated with the hash/mac bits
+      template<typename C>
+      void finalize(C &sha)
       {
-        sha256 h;
+        mutable_buffer b(buffer(sha));
+        unsigned char *d(buffer_cast<unsigned char *>(b));
         checked_("finalization of hash",
                  (keyed_ ?
-                  HMAC_Final(&hmac_context_, h.data(), 0) :
-                  EVP_DigestFinal_ex(md_context_, h.data(), NULL)));
+                  HMAC_Final(&hmac_context_, d, 0)
+                  : EVP_DigestFinal_ex(md_context_, d, NULL)));
         checked_("reinitialization of hash",
                  (keyed_ ?
-                  HMAC_Init_ex(&hmac_context_, NULL, 0, NULL, NULL) :
-                  EVP_DigestInit_ex(md_context_, digest_, NULL)));
-        return h;
+                  HMAC_Init_ex(&hmac_context_, NULL, 0, NULL, NULL)
+                  : EVP_DigestInit_ex(md_context_, digest_, NULL)));
       }
 
       /// Cleans up the underlying context.
@@ -153,97 +156,94 @@ namespace ajd
     class cipher : boost::noncopyable
     {
     public:
-      /// Encryption mode constructor, only takes key and IV parameters. Initializes the instance
-      /// for encryption. The key should be 128 bit (since we're with AES-128). Typically, the IV
-      /// should be 128 bit IV too but GCM supports other IV sizes those can be passed to. Both
-      /// parameters can be any contiguous storage container that can be converted to the
-      /// boost::asio::const_buffer using boost::asio::buffer.
+      /// Encryption mode  constructor, only takes key  and IV parameters.  Initializes the instance
+      /// for encryption. The  key should be 128  bit (since we're with AES-128).  Typically, the IV
+      /// should be 128 bit IV too but GCM supports  other IV sizes, so those can be passed to.
+      /// @param key (input) container holding 128 key bits (use crypto::block)
+      /// @param iv  (input) container holding 128 initialization vector bits (use crypto::block)
       template<typename K, typename I>
       cipher(const K &key, const I &iv): encrypt_(true)
       {
         initialize(buffer(key), buffer(iv));
       }
 
-      /// Decryption mode constructor, takes key, IV and the authentication tag as
-      /// parameters. Initializes the cipher for decryption and sets the passed tag up for
-      /// authenticated decryption.
-
-      /// The key and IV should be the same that were used to generate the ciphertext you're trying
-      /// to decrypt (obviously). The seal parameter should contain the authentication tag returned
-      /// by the 'seal' call after encryption. The key and IV parameters can be any contiguous
-      /// storage container that can be converted to the boost::asio::const_buffer using
-      /// boost::asio::buffer. The seal parameter needs to be a mutable_buffer because the OpenSSL
-      /// API to set the tag requires modifiable buffers.
+      /// Decryption  mode constructor,  takes key,  IV and  the authentication  tag  as parameters.
+      /// Initializes  the cipher  for  decryption and  sets  the passed  tag  up for  authenticated
+      /// decryption. The key  and IV should be the  same that were used to  generate the ciphertext
+      /// you're trying to decrypt (obviously). The seal parameter should contain the authentication
+      /// tag returned by the 'seal' call after encryption.
+      /// @param key  (input) container holding 128 key bits (use crypto::block)
+      /// @param iv   (input) container holding 128 initialization vector bits (use crypto::block)
+      /// The seal parameter does not have a 'const' with it because of the OpenSSL API.
+      /// @param seal (input) container holding 128 authentication tag bits (use crypto::block)
       template<typename K, typename I, typename S>
       cipher(const K &key, const I &iv, S &seal): encrypt_(false)
       {
         initialize(buffer(key), buffer(iv));
-        mutable_buffer s(buffer(seal));
-        checked_("set tag",
-                 EVP_CIPHER_CTX_ctrl
-                 (&context_, EVP_CTRL_GCM_SET_TAG, buffer_size(s), buffer_cast<void *>(s)));
+
+        mutable_buffer b(buffer(seal));
+        int tag_length(buffer_size(b));
+        void *tag(buffer_cast<void *>(b));
+        checked_("set tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_SET_TAG, tag_length, tag));
       }
 
-      /// The cipher transformation routine. This encrypts or decrypts the bytes in the in buffer
-      /// and places the output into the out buffer. Since GCM does not require any padding the
-      /// output buffer size should be the same as the input. Note that if your message contains
-      /// unencrypted associated data, that must be added before calling this.
-
-      /// The in and out parameters can be any contiguous storage container that can be converted to
-      /// the boost::asio::const_buffer and boost::asio::mutable_buffer using boost::asio::buffer.
+      /// The  cipher transformation  routine. This  encrypts or  decrypts the  bytes from  the 'in'
+      /// buffer and places them into the 'out'  buffer.  Since GCM does not require any padding the
+      /// output buffer size  should be the same  as the input.  If you  have unencrypted associated
+      /// data that must be added using 'associate_data' first.
+      /// @param input  (input)  plaintext or ciphertext (for encryption or decryption resp.)
+      /// @param output (output) inverse of the input
       template<typename I, typename O>
-      cipher &transform(const I &in, O &out)
+      cipher &transform(const I &input, O &output)
       {
         int outl;
-        const_buffer i(buffer(in));
-        mutable_buffer o(buffer(out));
-        checked_("transform",
-                 EVP_CipherUpdate
-                 (&context_, buffer_cast<unsigned char *>(o), &outl,
-                  buffer_cast<const unsigned char *>(i), buffer_size(i)));
+        const_buffer i(buffer(input));
+        mutable_buffer o(buffer(output));
+        int input_length(buffer_size(i));
+        unsigned char *out(buffer_cast<unsigned char *>(o));
+        const unsigned char *in(buffer_cast<const unsigned char *>(i));
+        checked_("transform", EVP_CipherUpdate(&context_, out, &outl, in, input_length));
         return *this;
       }
 
       /// Adds associated authenticated data, i.e. data which is accounted for in the authentication
-      /// tag, but is not encrypted. Typically, this is used for associated meta data (like the
+      /// tag, but  is not encrypted.  Typically, this  is used for  associated meta data  (like the
       /// packet header in a network protocol). This data must be added /before/ any message text is
-      /// added to the cipher. The aad parameter can be any contiguous storage container that can be
-      /// converted to the boost::asio::const_buffer using boost::asio::buffer.
+      /// added to the cipher.
+      /// @param aad (input) container with associated data
       template<typename A>
       cipher &associate_data(const A &aad)
       {
         int outl;
         const_buffer buf(buffer(aad));
-        size_t length(buffer_size(buf));
+        int aad_length(buffer_size(buf));
         const unsigned char *a(buffer_cast<const unsigned char *>(buf));
-        if (length)
+        if (aad_length)
         {
-          checked_("associated data", EVP_CipherUpdate(&context_, NULL, &outl, a, length));
+          checked_("associated data", EVP_CipherUpdate(&context_, NULL, &outl, a, aad_length));
         }
         return *this;
       }
 
-      /// The encryption finalization routine. Populates the authentication tag "seal" that must be
-      /// passed along for successful decryption. Any modifications in the cipher text or the
+      /// The encryption finalization routine. Populates  the authentication tag "seal" that must be
+      /// passed  along for  successful decryption.   Any modifications  in the  cipher text  or the
       /// associated data will be detected by the decryptor using this seal.
-
-      /// The seal parameter can be any contiguous storage container that can be converted to the
-      /// boost::asio::mutable_buffer using boost::asio::buffer.
+      /// @param seal (output) container to be populated with the tag bits
       template<typename S>
       void seal(S &seal)
       {
         int outl;
         assert(encrypt_);
         mutable_buffer s(buffer(seal));
+        int tag_length(buffer_size(s));
+        void *tag(buffer_cast<void *>(s));
         checked_("seal", EVP_CipherFinal_ex(&context_, NULL, &outl));
-        checked_("get tag",
-                 EVP_CIPHER_CTX_ctrl
-                 (&context_, EVP_CTRL_GCM_GET_TAG, buffer_size(s), buffer_cast<void *>(s)));
+        checked_("get tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_GET_TAG, tag_length, tag));
       }
 
-      /// The decryption finalization routine. Uses the authentication tag to verify if the
+      /// The  decryption  finalization  routine. Uses  the  authentication  tag  to verify  if  the
       /// decryption was successful. If the tag verification fails an exception is thrown, if all is
-      /// well, the method silently returns. If an exception is thrown, the decrypted data is
+      /// well,  the method silently  returns.  If  an exception  is thrown,  the decrypted  data is
       /// corrupted and /must/ not be used.
       void verify()
       {
