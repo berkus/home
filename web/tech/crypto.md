@@ -37,7 +37,7 @@ namespace ajd { namespace crypto {
 ```
 
 Note that all wrapper definitions are inside the `ajd::crypto` namespace. All executable code is
-assumed to be prefixed by a `using namespace std;`.
+assumed to be prefixed by a `using namespace ajd;`.
 
 #### Secure Random Number Generation
 
