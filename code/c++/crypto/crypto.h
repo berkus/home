@@ -1,5 +1,5 @@
-/// Copyright (c) 2013 Aldrin's Notebook (http://a1dr.in). All rights reserved.
-/// You may use any this header as long as you retain the two lines of this notice.
+/// Copyright (c) 2013, Aldrin's Notebook (http://a1dr.in). All rights reserved.
+/// Licensed under the BSD-2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
 
 #pragma once
 

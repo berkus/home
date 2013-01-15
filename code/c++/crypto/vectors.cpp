@@ -1,7 +1,10 @@
+/// Copyright (c) 2013, Aldrin's Notebook (http://a1dr.in). All rights reserved.
+/// Licensed under the BSD-2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+
 #include "crypto.h"
-#include <cassert>
-#include <algorithm>
+
 #include <sstream>
+#include <algorithm>
 
 using namespace ajd;
 
@@ -72,9 +75,9 @@ void pbkdf_tests()
 
 void sha256_tests()
 {
-  // test vectors from: http://csrc.nist.gov/groups/STM/cavp/index.html#03
-  // only a few test cases were chosen. we're only doing sanity tests here.
-  // in particular, we've chosen Len=0, 8, 64, 512 from SHA256ShortMsg.rsp
+  // Test vectors from: http://csrc.nist.gov/groups/STM/cavp/index.html#03
+  // Only a few test cases were chosen since we're only doing sanity tests here.
+  // In particular, we've chosen Len=0, 8, 64, 512 from SHA256ShortMsg.rsp
   struct test
   {
     std::string Msg;     // message
@@ -267,10 +270,8 @@ void gcm_tests()
 
 int main()
 {
-  ERR_load_crypto_strings();
   gcm_tests();
   hmac_tests();
   pbkdf_tests();
   sha256_tests();
-  ERR_free_strings();
 }

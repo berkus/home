@@ -1,48 +1,48 @@
+/// Copyright (c) 2013, Aldrin's Notebook (http://a1dr.in). All rights reserved.
+/// Licensed under the BSD-2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+
 #include "crypto.h"
-#include <cassert>
-#include <boost/array.hpp>
-#include <boost/shared_array.hpp>
 
 using namespace ajd;
 
 void random_generation()
 {
-  assert(crypto::prng_ok());          // check PRNG state
+  assert(crypto::prng_ok());                                       // check PRNG state
 
-  crypto::block buffer;               // use the convenience typedef
-  crypto::fill_random(buffer);        // fill it with random bytes.
-  unsigned char arr[1024];            // use a static POD array
-  crypto::fill_random(arr);           // fill it with random bytes
-  std::vector<unsigned char> vec(16); // use a std::vector
-  crypto::fill_random(vec);           // fill it with random bytes
+  crypto::block buffer;                                            // use the convenience typedef
+  crypto::fill_random(buffer);                                     // fill it with random bytes.
+  unsigned char arr[1024];                                         // use a static POD array
+  crypto::fill_random(arr);                                        // fill it with random bytes
+  std::vector<unsigned char> vec(16);                              // use a std::vector
+  crypto::fill_random(vec);                                        // fill it with random bytes
 }
 
 void key_generation()
 {
-  crypto::block key;                         // 128 bit key
-  crypto::block salt;                        // 128 bit salt
-  crypto::fill_random(salt);                 // random salt.
-  crypto::derive_key(key, "password", salt); // password derived key.
+  crypto::block key;                                               // 128 bit key
+  crypto::block salt;                                              // 128 bit salt
+  crypto::fill_random(salt);                                       // random salt.
+  crypto::derive_key(key, "password", salt);                       // password derived key.
 }
 
 void message_digest()
 {
-  crypto::hash md;              // the hash object
-  crypto::hash::value sha;      // the hash value
-  md.update("hello world!");    // add data
-  md.update("see you world!");  // add more data
-  md.finalize(sha);             // get digest value
+  crypto::hash md;                                                 // the hash object
+  crypto::hash::value sha;                                         // the hash value
+  md.update("hello world!");                                       // add data
+  md.update("see you world!");                                     // add more data
+  md.finalize(sha);                                                // get digest value
 }
 
 void message_authentication_code()
 {
-  crypto::block key;            // the hash key
-  crypto::fill_random(key);     // random key will do for now.
-  crypto::hash h(key);          // the keyed-hash object
-  crypto::hash::value mac;      // the mac value
-  h.update("hello world!");     // add data
-  h.update("see you world!");   // more data
-  h.finalize(mac);              // get the MAC code
+  crypto::block key;                                               // the hash key
+  crypto::fill_random(key);                                        // random key will do for now.
+  crypto::hash h(key);                                             // the keyed-hash object
+  crypto::hash::value mac;                                         // the mac value
+  h.update("hello world!");                                        // add data
+  h.update("see you world!");                                      // more data
+  h.finalize(mac);                                                 // get the MAC code
 }
 
 void encryption()
@@ -100,10 +100,8 @@ void encryption()
 
 int main()
 {
-  ERR_load_crypto_strings();
   random_generation();
   key_generation();
   message_digest();
   encryption();
-  ERR_free_strings();
 }
