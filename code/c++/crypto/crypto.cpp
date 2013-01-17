@@ -10,7 +10,7 @@ void random_generation()
   assert(crypto::prng_ok());                                       // check PRNG state
 
   crypto::block buffer;                                            // use the convenience typedef
-  crypto::fill_random(buffer);                                     // fill it with random bytes.
+  crypto::fill_random(buffer);                                     // fill it with random bytes
   unsigned char arr[1024];                                         // use a static POD array
   crypto::fill_random(arr);                                        // fill it with random bytes
   std::vector<unsigned char> vec(16);                              // use a std::vector
@@ -22,7 +22,8 @@ void key_generation()
   crypto::block key;                                               // 128 bit key
   crypto::block salt;                                              // 128 bit salt
   crypto::fill_random(salt);                                       // random salt.
-  crypto::derive_key(key, "password", salt);                       // password derived key.
+  crypto::derive_key(key, "password", salt);                       // password derived key
+  crypto::cleanse(key);                                            // clear sensitive data
 }
 
 void message_digest()
@@ -37,12 +38,13 @@ void message_digest()
 void message_authentication_code()
 {
   crypto::block key;                                               // the hash key
-  crypto::fill_random(key);                                        // random key will do for now.
+  crypto::fill_random(key);                                        // random key will do for now
   crypto::hash h(key);                                             // the keyed-hash object
   crypto::hash::value mac;                                         // the mac value
   h.update("hello world!");                                        // add data
   h.update("see you world!");                                      // more data
   h.finalize(mac);                                                 // get the MAC code
+  crypto::cleanse(key);                                            // clear sensitive data
 }
 
 void encryption()
@@ -96,6 +98,7 @@ void encryption()
     }
     catch (...) {}
   }
+  crypto::cleanse(key);                                            // clear sensitive data
 }
 
 int main()

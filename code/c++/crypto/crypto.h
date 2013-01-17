@@ -38,6 +38,13 @@ namespace ajd
       }
     }
 
+    /// Remove sensitive data from the buffer
+    template<typename C> void cleanse(C &c)
+    {
+      mutable_buffer b(buffer(c));
+      OPENSSL_cleanse(buffer_cast<void *>(b), buffer_size(b));
+    }
+
     /// A convenience typedef for a 128 bit block.
     typedef boost::array<unsigned char, 16> block;
 

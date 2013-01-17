@@ -21,18 +21,26 @@ libraries. Here is a [sample][app] and here are the [tests][vectors].
 
 Most of the wrapper functions work on blocks of data and we need a way to pass these in and out of
 the wrapper routines. Any C++ container that guarantees contiguous storage (i.e. `std::vector`,
-`std::string`, `std::array`, `boost::array` or a POD array) can be passed as the argument to any
-wrapper function that takes a data buffer as a parameter. Internally, the wrapper uses the
-[boost::asio::buffer][buffer] function to convert these containers to pointer-length pairs which can
-then be passed to the OpenSSL routines.
+`std::string`, `std::array`, `boost::array` or a raw char array) can be passed as the argument to
+any wrapper function that takes a data buffer as a parameter.
 
-The wrapper defines a convenience typedef for the most commonly used buffer (128 bits)
+Having said that, it is best to avoid using dynamic STL containers for storing sensitive data
+because it is diffcult to scrub them off once we're done using the secrets. The implementations of
+these containers are allowed to reallocate and copy their contents in the memory and may end up with
+inaccessible copies of sensitive data that we can't overwrite. Simpler containers like
+`boost::array` or raw char arrays are better for this purpose. You can also use the following typedef:
 
 ``` c++
 namespace ajd { namespace crypto {
     /// A convenience typedef for a 128 bit block.
     typedef boost::array<unsigned char, 16> block;
+    /// Remove sensitive data from the buffer
+    template<typename C> void cleanse(C &c)
 ```
+
+The wrapper also provides a `cleanse` method that can be used to overwrite secret data in the
+buffers. This method does not deallocate any memory, it only overwrites the contents of the passed
+buffer by invoking `OPENSSL_cleanse` on it.
 
 #### Secure Random Number Generation
 
@@ -59,7 +67,7 @@ void random_generation()
   assert(crypto::prng_ok());          // check PRNG state
 
   crypto::block buffer;               // use the convenience typedef
-  crypto::fill_random(buffer);        // fill it with random bytes.
+  crypto::fill_random(buffer);        // fill it with random bytes
   unsigned char arr[1024];            // use a static POD array
   crypto::fill_random(arr);           // fill it with random bytes
   std::vector<unsigned char> vec(16); // use a std::vector
@@ -94,8 +102,9 @@ void key_generation()
 {
   crypto::block key;                         // 128 bit key
   crypto::block salt;                        // 128 bit salt
-  crypto::fill_random(salt);                 // random salt.
-  crypto::derive_key(key, "password", salt); // password derived key.
+  crypto::fill_random(salt);                 // random salt
+  crypto::derive_key(key, "password", salt); // password derived key
+  crypto::cleanse(key)                       // clear sensitive data
 }
 ```
 
@@ -163,6 +172,7 @@ void message_authentication_code()
   h.update("hello world!");     // add data
   h.update("see you world!");   // more data
   h.finalize(mac);              // get the MAC code
+  crypto::cleanse(key)          // clean senstive data
 }
 ```
 
@@ -258,7 +268,8 @@ void authenticated_encrypt_decrypt()
     cipher.transform(ciphertext, decrypted);  // do transform (i.e. decrypt)
     cipher.verify();                          // check the seal
   }
-
+  
+  crypto::cleanse(key)                        // clear senstive data
 ```
 
 That completes the list of primitives we started off with. There's more to be done, in particular,
