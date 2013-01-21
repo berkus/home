@@ -1,6 +1,6 @@
 project(c++11)
 
-SET(FEATURES langsupport)
+SET(FEATURES thread)
 
 foreach(feature ${FEATURES})
   add_executable(${feature} ${feature}.cpp)

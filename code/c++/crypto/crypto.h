@@ -5,7 +5,6 @@
 
 #include <stdexcept>
 
-#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
@@ -27,13 +26,12 @@ namespace ajd
     /// Check return values from OpenSSL and throw an exception if it failed.
     /// @param what the logical operation being performed
     /// @success the return value from OpenSSL API
-    void checked_(const char *what, bool success)
+    void checked_(const char *what, int ret)
     {
-      if (!success)
+      if (ret == 0)
       {
         std::string message(what);
-        message += " failed: ";
-        message += ERR_get_error();
+        message += " failed.";
         throw std::runtime_error(message);
       }
     }
