@@ -15,30 +15,37 @@ namespace ajd
 {
   namespace crypto
   {
-    using boost::asio::buffer;
-    using boost::asio::buffer_cast;
-    using boost::asio::buffer_size;
-    using boost::asio::const_buffer;
-    using boost::asio::mutable_buffer;
-
-    /// Check return values from OpenSSL and throw an exception if it failed.
-    /// @param what the logical operation being performed
-    /// @success the return value from OpenSSL API
-    void checked_(const char *what, int ret)
+    namespace internal
     {
-      if (ret == 0)
+      /// Check return values from OpenSSL and throw an exception if it failed.
+      /// @param what the logical operation being performed
+      /// @success the return value from OpenSSL API
+      void api(const char *what, int ret)
       {
-        std::string message(what);
-        message += " failed.";
-        throw std::runtime_error(message);
+        if (ret == 0)
+        {
+          std::string message(what);
+          message += " failed.";
+          throw std::runtime_error(message);
+        }
       }
+      /// Internal representation of a raw buffer. Uses boost::asio::buffer to translate the passed
+      /// container to a raw pointer and length pair.
+      template<typename T> struct raw
+      {
+        T ptr;
+        int len;
+        template<typename B> raw(const B &b):
+          ptr(boost::asio::buffer_cast<T>(b)),
+          len(static_cast<int>(boost::asio::buffer_size(b))) {}
+      };
     }
 
     /// Remove sensitive data from the buffer
     template<typename C> void cleanse(C &c)
     {
-      mutable_buffer b(buffer(c));
-      OPENSSL_cleanse(buffer_cast<void *>(b), buffer_size(b));
+      internal::raw<void *> r(boost::asio::buffer(c));
+      OPENSSL_cleanse(r.ptr, r.len);
     }
 
     /// A convenience typedef for a 128 bit block.
@@ -53,8 +60,8 @@ namespace ajd
     /// @param c  (output) container populated with random bits
     template<typename C> void fill_random(C &c)
     {
-      mutable_buffer b(buffer(c));
-      checked_("random bytes", RAND_bytes(buffer_cast<unsigned char *>(b), buffer_size(b)));
+      internal::raw<unsigned char *> r(boost::asio::buffer(c));
+      internal::api("random bytes", RAND_bytes(r.ptr, r.len));
     }
 
     /// Derives a  key from a  password and salt  using PBKDF2 with  HMAC-SHA256 as the  chosen PRF.
@@ -62,26 +69,18 @@ namespace ajd
     /// the type for the key  parameter, since it fixes the key length to 128  bit which is what the
     /// other primitives in the wrapper (crypto::hash, crypto::cipher) require.
     /// @param key      (output) container populated with the key bits
-    /// @param password (input)  container holding the user password
+    /// @param pass     (input)  container holding the user password
     /// @param salt     (input)  container holding the salt bytes
     /// @param c        (input)  PBKDF2 iteration count (default=10000)
     template <typename C1, typename C2, typename C3>
-    void derive_key(C3 &key, const C1 &passwd, const C2 &salt, int c = 10000)
+    void derive_key(C3 &key, const C1 &pass, const C2 &salt, int c = 10000)
     {
-      const_buffer p(buffer(passwd));
-      int passlen(buffer_size(p));
-      const char *pass(buffer_cast<const char *>(p));
-
-      const_buffer s(buffer(salt));
-      int saltlen(buffer_size(s));
-      const unsigned char *slt(buffer_cast<const unsigned char *>(s));
-
-      mutable_buffer k(buffer(key));
-      int keylen(buffer_size(k));
-      unsigned char *out(buffer_cast<unsigned char *>(k));
-
-      checked_("key derivation",
-               PKCS5_PBKDF2_HMAC(pass, passlen, slt, saltlen, c, EVP_sha256(), keylen, out));
+      internal::raw<const char *> p(boost::asio::buffer(pass));
+      internal::raw<unsigned char *> k(boost::asio::buffer(key));
+      internal::raw<const unsigned char *> s(boost::asio::buffer(salt));
+      internal::api("key derivation",
+                    PKCS5_PBKDF2_HMAC(p.ptr, p.len, s.ptr, s.len, c, EVP_sha256(),
+                                      k.len, k.ptr));
     }
 
     /// Generates a keyed or a plain cryptographic hash.
@@ -94,7 +93,7 @@ namespace ajd
       /// The plain hash constructor. Initializes the underlying hash context.
       hash(): keyed_(false), digest_(EVP_sha256()), md_context_(EVP_MD_CTX_create())
       {
-        checked_("digest initialization", EVP_DigestInit_ex(md_context_, digest_, NULL));
+        internal::api("digest initialization", EVP_DigestInit_ex(md_context_, digest_, NULL));
       }
 
       /// The keyed hash constructor. Initializes the underlying hash context.
@@ -103,10 +102,8 @@ namespace ajd
       hash(const C &key): keyed_(true), digest_(EVP_sha256())
       {
         HMAC_CTX_init(&hmac_context_);
-        const_buffer key_buffer(buffer(key));
-        int key_length(buffer_size(key_buffer));
-        const void *k(buffer_cast<const void *>(key_buffer));
-        checked_("mac initialization", HMAC_Init_ex(&hmac_context_, k, key_length, digest_, NULL));
+        internal::raw<const void *> k(boost::asio::buffer(key));
+        internal::api("mac initialization", HMAC_Init_ex(&hmac_context_, k.ptr, k.len, digest_, NULL));
       }
 
       /// Add the  contents of the passed  container to the  underlying context. This method  can be
@@ -115,13 +112,11 @@ namespace ajd
       template <typename C>
       hash &update(const C &data)
       {
-        const_buffer b(buffer(data));
-        int l(buffer_size(b));
-        const void *d(buffer_cast<const void *>(b));
-        checked_("add data to hash",
-                 (keyed_ ?
-                  HMAC_Update(&hmac_context_, (const unsigned char *)d, l)
-                  : EVP_DigestUpdate(md_context_, d, l)));
+        internal::raw<const void *> d(boost::asio::buffer(data));
+        internal::api("add data to hash",
+                      (keyed_ ?
+                       HMAC_Update(&hmac_context_, (const unsigned char *)d.ptr, d.len)
+                       : EVP_DigestUpdate(md_context_, d.ptr, d.len)));
         return *this;
       }
 
@@ -131,16 +126,15 @@ namespace ajd
       template<typename C>
       void finalize(C &sha)
       {
-        mutable_buffer b(buffer(sha));
-        unsigned char *d(buffer_cast<unsigned char *>(b));
-        checked_("finalization of hash",
-                 (keyed_ ?
-                  HMAC_Final(&hmac_context_, d, 0)
-                  : EVP_DigestFinal_ex(md_context_, d, NULL)));
-        checked_("reinitialization of hash",
-                 (keyed_ ?
-                  HMAC_Init_ex(&hmac_context_, NULL, 0, NULL, NULL)
-                  : EVP_DigestInit_ex(md_context_, digest_, NULL)));
+        internal::raw<unsigned char *>d(boost::asio::buffer(sha));
+        internal::api("finalization of hash",
+                      (keyed_ ?
+                       HMAC_Final(&hmac_context_, d.ptr, 0)
+                       : EVP_DigestFinal_ex(md_context_, d.ptr, NULL)));
+        internal::api("reinitialization of hash",
+                      (keyed_ ?
+                       HMAC_Init_ex(&hmac_context_, NULL, 0, NULL, NULL)
+                       : EVP_DigestInit_ex(md_context_, digest_, NULL)));
       }
 
       /// Cleans up the underlying context.
@@ -167,7 +161,7 @@ namespace ajd
       template<typename K, typename I>
       cipher(const K &key, const I &iv): encrypt_(true)
       {
-        initialize(buffer(key), buffer(iv));
+        initialize(boost::asio::buffer(key), boost::asio::buffer(iv));
       }
 
       /// Decryption  mode constructor,  takes key,  IV and  the authentication  tag  as parameters.
@@ -182,12 +176,9 @@ namespace ajd
       template<typename K, typename I, typename S>
       cipher(const K &key, const I &iv, S &seal): encrypt_(false)
       {
-        initialize(buffer(key), buffer(iv));
-
-        mutable_buffer b(buffer(seal));
-        int tag_length(buffer_size(b));
-        void *tag(buffer_cast<void *>(b));
-        checked_("set tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_SET_TAG, tag_length, tag));
+        initialize(boost::asio::buffer(key), boost::asio::buffer(iv));
+        internal::raw<void *> t(boost::asio::buffer(seal));
+        internal::api("set tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_SET_TAG, t.len, t.ptr));
       }
 
       /// The  cipher transformation  routine. This  encrypts or  decrypts the  bytes from  the 'in'
@@ -200,12 +191,9 @@ namespace ajd
       cipher &transform(const I &input, O &output)
       {
         int outl;
-        const_buffer i(buffer(input));
-        mutable_buffer o(buffer(output));
-        int input_length(buffer_size(i));
-        unsigned char *out(buffer_cast<unsigned char *>(o));
-        const unsigned char *in(buffer_cast<const unsigned char *>(i));
-        checked_("transform", EVP_CipherUpdate(&context_, out, &outl, in, input_length));
+        internal::raw<unsigned char *> out(boost::asio::buffer(output));
+        internal::raw<const unsigned char *> in(boost::asio::buffer(input));
+        internal::api("transform", EVP_CipherUpdate(&context_, out.ptr, &outl, in.ptr, in.len));
         return *this;
       }
 
@@ -217,13 +205,11 @@ namespace ajd
       template<typename A>
       cipher &associate_data(const A &aad)
       {
-        int outl;
-        const_buffer buf(buffer(aad));
-        int aad_length(buffer_size(buf));
-        const unsigned char *a(buffer_cast<const unsigned char *>(buf));
-        if (aad_length)
+        internal::raw<const unsigned char *>a(boost::asio::buffer(aad));
+        if (a.len > 0)
         {
-          checked_("associated data", EVP_CipherUpdate(&context_, NULL, &outl, a, aad_length));
+          int outl;
+          internal::api("associated data", EVP_CipherUpdate(&context_, NULL, &outl, a.ptr, a.len));
         }
         return *this;
       }
@@ -237,11 +223,9 @@ namespace ajd
       {
         int outl;
         assert(encrypt_);
-        mutable_buffer s(buffer(seal));
-        int tag_length(buffer_size(s));
-        void *tag(buffer_cast<void *>(s));
-        checked_("seal", EVP_CipherFinal_ex(&context_, NULL, &outl));
-        checked_("get tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_GET_TAG, tag_length, tag));
+        internal::raw<void *> t(boost::asio::buffer(seal));
+        internal::api("seal", EVP_CipherFinal_ex(&context_, NULL, &outl));
+        internal::api("get tag", EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_GET_TAG, t.len, t.ptr));
       }
 
       /// The  decryption  finalization  routine. Uses  the  authentication  tag  to verify  if  the
@@ -252,7 +236,7 @@ namespace ajd
       {
         int outl;
         assert(!encrypt_);
-        checked_("verify", EVP_CipherFinal_ex(&context_, NULL, &outl));
+        internal::api("verify", EVP_CipherFinal_ex(&context_, NULL, &outl));
       }
 
       ~cipher()
@@ -262,17 +246,17 @@ namespace ajd
     private:
       bool encrypt_;
       EVP_CIPHER_CTX context_;
-      void initialize(const_buffer key, const_buffer iv)
+      void initialize(boost::asio::const_buffer k, boost::asio::const_buffer i)
       {
         EVP_CIPHER_CTX_init(&context_);
-        const unsigned char *i(buffer_cast<const unsigned char *>(iv));
-        const unsigned char *k(buffer_cast<const unsigned char *>(key));
-        checked_("initialize - i",
-                 EVP_CipherInit_ex(&context_, EVP_aes_128_gcm(), NULL, NULL, NULL, encrypt_));
-        checked_("set iv length",
-                 EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_SET_IVLEN, buffer_size(iv), NULL));
-        checked_("initialize - ii",
-                 EVP_CipherInit_ex(&context_, NULL, NULL, k, i, encrypt_));
+        internal::raw<const unsigned char *>iv(i);
+        internal::raw<const unsigned char *>key(k);
+        internal::api("initialize - i",
+                      EVP_CipherInit_ex(&context_, EVP_aes_128_gcm(), NULL, NULL, NULL, encrypt_));
+        internal::api("set iv length",
+                      EVP_CIPHER_CTX_ctrl(&context_, EVP_CTRL_GCM_SET_IVLEN, iv.len, NULL));
+        internal::api("initialize - ii",
+                      EVP_CipherInit_ex(&context_, NULL, NULL, key.ptr, iv.ptr, encrypt_));
       }
     };
   }
