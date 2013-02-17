@@ -87,7 +87,7 @@ namespace ajd
     class hash: boost::noncopyable
     {
     public:
-      /// A convenience typedef for a 256 SHA-256 value.
+      /// A convenience typedef for a 256 bit SHA-256 value.
       typedef boost::array<unsigned char, 32> value;
 
       /// The plain hash constructor. Initializes the underlying hash context.

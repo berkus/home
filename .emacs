@@ -6,6 +6,8 @@
 (global-set-key (kbd "M-c") 'compile)
 (global-set-key (kbd "M-l") 'goto-line)
 (global-set-key (kbd "C-/") 'other-window)
+(global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "C-c r") 'org-capture)
 (global-set-key (kbd "M-e") 'ediff-buffers)
 (global-set-key (kbd "<f10>") 'server-edit)
 (global-set-key (kbd "M-<up>") 'move-line-up)
@@ -14,7 +16,6 @@
 (global-set-key (kbd "C-<right>") 'next-buffer)
 (global-set-key (kbd "C-<left>") 'previous-buffer)
 (global-set-key (kbd "<f2>") 'delete-other-windows)
-(global-set-key (kbd "<f5>") 'query-replace-regexp)
 (global-set-key (kbd "M-p") 'org-publish-current-project)
 
 ;; global mode variable customizations
@@ -51,7 +52,23 @@
 (setq my-elisp-dir (format "%s/%s" (file-name-directory load-file-name) ".elisp"))
 
 ;; load-path
-(setq load-path (cons my-elisp-dir load-path))
+;; disabled now. using emacs-24 package elpa.
+;(setq load-path (cons my-elisp-dir load-path))
+
+;;load extra packages
+(when (>= emacs-major-version 24)
+  (require 'package)
+   (package-initialize)
+   (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))
+   (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/")))
+
+(require 'tramp)
+(require 'uniquify)
+(require 'yaml-mode)
+(require 'cmake-mode)
+(require 'jinja2-mode)
+(require 'markdown-mode)
+(require 'protobuf-mode)
 
 ;; file mode settings
 (add-to-list 'auto-mode-alist '("\\.xml" . nxml-mode))
@@ -63,7 +80,6 @@
 (add-to-list 'auto-mode-alist '("\\.ps1" . powershell-mode))
 (add-to-list 'auto-mode-alist '("\\.json" . javascript-mode))
 (add-to-list 'auto-mode-alist '(".*[Cc][Mm]ake.*" . cmake-mode))
-
 (add-to-list 'auto-mode-alist '("\\([Ss][Cc]onstruct\\|[Ss][Cc]onscript\\)" . python-mode))
 
 ;; global defaults
@@ -152,17 +168,6 @@
 ;; enabled commands.
 (put 'downcase-region 'disabled nil)
 
-;;load extra packages
-(require 'jinja)
-(require 'uniquify)
-(require 'yaml-mode)
-(require 'virtualenv)
-(require 'cmake-mode)
-(require 'markdown-mode)
-(require 'protobuf-mode)
-(require 'powershell-mode)
-(require 'graphviz-dot-mode)
-
 ;; erlang settings
 (when (and (getenv "ERLANG_ROOT") (getenv "ERLANG_EMACS"))
   (progn
@@ -170,3 +175,15 @@
     (setq erlang-root-dir (getenv "ERLANG_ROOT"))
     (setq exec-path (cons (concat (getenv "ERLANG_ROOT") "/bin") exec-path))
     (require 'erlang-start)))
+
+;; org-mode settings
+(setq org-capture-templates
+      '(("d" "Dump" entry (file+headline "~/.plan" "Inbox")
+         "* TODO %?" :kill-buffer)))
+(setq org-agenda-custom-commands
+      '(("d" "Daily Action List"
+         ((agenda "" ((org-agenda-ndays 1)
+                      (org-agenda-sorting-strategy
+                       (quote ((agenda time-up priority-down tag-up))))
+                      (org-deadline-warning-days 0)
+                      ))))))
