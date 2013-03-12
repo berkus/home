@@ -7,9 +7,10 @@
 
 namespace ajd
 {
-  typedef binary_tree<char>::node tree;
+  typedef binary_tree<char> char_tree;
+  typedef char_tree::node ctree;
 
-  void postorder(tree root, std::ostream &out)
+  static void postorder(ctree root, std::ostream &out)
   {
     if (root)
     {
@@ -19,31 +20,11 @@ namespace ajd
     }
   }
 
-  void preorder(tree root, std::ostream &out)
-  {
-    if (root)
-    {
-      out << root->value;
-      preorder(root->left, out);
-      preorder(root->right, out);
-    }
-  }
-
-  void inorder(tree root, std::ostream &out)
-  {
-    if (root)
-    {
-      inorder(root->left, out);
-      out << root->value;
-      inorder(root->right, out);
-    }
-  }
-
-  tree from_preorder_inorder(const std::string &preorder, const std::string &inorder)
+  ctree from_preorder_inorder(const std::string &preorder, const std::string &inorder)
   {
     assert(preorder.size() == inorder.size());
 
-    if (preorder.empty()) { return tree(); }
+    if (preorder.empty()) { return ctree(); }
 
     std::string::size_type r = inorder.find(preorder[0]);
 
@@ -53,7 +34,7 @@ namespace ajd
     std::string right_inorder(inorder, r + 1);
     std::string right_preorder(preorder, r + 1);
 
-    tree root = binary_tree<char>::make_node(preorder[0]);
+    ctree root = char_tree::make_node(preorder[0]);
     root->left = from_preorder_inorder(left_preorder, left_inorder);
     root->right = from_preorder_inorder(right_preorder, right_inorder);
 
@@ -62,7 +43,7 @@ namespace ajd
 
   void test_traversals()
   {
-    tree t(from_preorder_inorder("FBADCEGIH", "ABCDEFGHI"));
+    ctree t(from_preorder_inorder("FBADCEGIH", "ABCDEFGHI"));
     std::stringstream stream;
     postorder(t, stream);
     assert(stream.str() == "ACEDBHIGF");
@@ -70,8 +51,6 @@ namespace ajd
 
   void test_reads()
   {
-    typedef binary_tree<char> char_tree;
-    typedef char_tree::node ctree;
     assert(!char_tree::read_tree("()"));
     ctree one = char_tree::read_tree("(A)");
     assert(one && one->value == 'A');

@@ -41,6 +41,7 @@ endmacro()
 include_directories(${CMAKE_SOURCE_DIR})
 
 enable_testing()
+add_subdirectory(misc)
 add_subdirectory(boost)
 add_subdirectory(crypto)
 add_subdirectory(executor)
