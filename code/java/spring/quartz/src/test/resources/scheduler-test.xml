@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<!-- Copyright (c) 2013. Aldrin's Notebook [http://aldrin.co] -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+       ">
+
+    <!-- Creates a simple bean that'll be accessed by the job and asserted against by the test -->
+    <util:map id="testData">
+        <entry key="test" value="test-data"/>
+    </util:map>
+
+    <!-- Creates a scheduler instance -->
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <!-- ensures that the application context is passed to the job instances. -->
+        <property name="applicationContextSchedulerContextKey" value="applicationContext"/>
+        <property name="triggers">
+            <bean class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+                <property name="repeatInterval" value="1000"/>
+                <property name="jobDetail">
+                    <bean class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+                        <property name="durability" value="true"/>
+                        <property name="jobClass" value="co.aldrin.spring.quartz.NonsenseJob"/>
+                        <property name="jobDataAsMap">
+                            <map>
+                                <entry key="jobDetailKey" value="jobDetailValue"/>
+                            </map>
+                        </property>
+                    </bean>
+                </property>
+                <property name="jobDataAsMap">
+                    <map>
+                        <entry key="triggerKey" value="triggerValue"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+
+</beans>
+
+
+
