@@ -1,5 +1,7 @@
 *.pyc
 *.elc
-sandbox/*
+*.iws
+*.iml
 .DS_Store
-web/code/java/*
+target/
+.idea/
