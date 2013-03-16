@@ -1,5 +1,5 @@
 digraph G{
-  size="9,4"
+  size="8,4"
   node[shape=point color=crimson]
   edge[arrowhead=none color=gray]
 

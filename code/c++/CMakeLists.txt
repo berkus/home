@@ -34,7 +34,7 @@ macro(enable_boost_libraries)
   find_package(Boost REQUIRED COMPONENTS ${ARGV})
   include_directories(${Boost_INCLUDE_DIRS})
   if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(Boost_LIBRARIES "${Boost_LIBRARIES} -lrt")
+    list(APPEND Boost_LIBRARIES "-lrt")
   endif()
 endmacro()
 

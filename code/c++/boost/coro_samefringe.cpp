@@ -4,30 +4,33 @@
 
 typedef ajd::binary_tree<char> tree;
 
-typedef boost::coroutines::coroutine<char()> leaf_iterator;
+typedef boost::coroutines::coroutine<char()> generator;
 
 bool is_leaf(tree::node l) { return !(l->left || l->right); }
 
-void leaves(leaf_iterator::caller_type &yield, tree::node &node)
+void next_leaf(generator::caller_type &yield, tree::node &node)
 {
   if (node)
   {
-    leaves(yield, node->left);
-    leaves(yield, node->right);
+    next_leaf(yield, node->left);
+    next_leaf(yield, node->right);
     if (is_leaf(node)) { yield(node->value); }
   }
 }
 
 bool same_fringe(tree::node one, tree::node two)
 {
-  leaf_iterator leaves1(boost::bind(leaves, _1, one));
-  leaf_iterator leaves2(boost::bind(leaves, _1, two));
-  while (leaves1 && leaves2)
+  generator leaf1(boost::bind(next_leaf, _1, one));
+  generator leaf2(boost::bind(next_leaf, _1, two));
+
+  for (; (leaf1 && leaf2); leaf1(), leaf2())
   {
-    if (leaves1.get() != leaves2.get()) { return false; }
-    leaves1();
-    leaves2();
+    if (leaf1.get() != leaf2.get())
+    {
+      return false;
+    }
   }
+
   return true;
 }
 
