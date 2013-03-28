@@ -1,0 +1,75 @@
+digraph G{
+  size="8,4"
+  node[shape=point color=crimson]
+  edge[arrowhead=none color=gray]
+
+  a1->a2; a1->a3;
+  a2->a4; a2->a5;
+
+  node[color=cornflowerblue]
+  b1->b2; b1->b3;
+  b2->b4; b2->b5;
+
+  c1->c2->c3->c4->c5;
+  
+  d1->d2; d1->d3;
+  d2->d4; d4->d6;
+  d3->d5; d5->d7;
+
+  node[shape=none fontname=Helvectica fontcolor=crimson]
+  aF[label="X"];
+  aR[label="R"];
+  aI[label="I"];
+  aN[label="N"];
+  aG[label="G"];
+  aE[label="E"];
+  a4->aF;
+  a4->aR;
+  a5->aI;
+  a5->aN;
+  a3->aG;
+  a3->aE;
+
+  node[fontcolor=cornflowerblue]
+  bF[label="F"];
+  bR[label="R"];
+  bI[label="I"];
+  bN[label="N"];
+  bG[label="G"];
+  bE[label="E"];
+  b3->bG;
+  b3->bE;
+  b5->bI;
+  b5->bN;
+  b4->bF;
+  b4->bR;
+
+  
+  cF[label="F"];
+  cR[label="R"];
+  cI[label="I"];
+  cN[label="N"];
+  cG[label="G"];
+  cE[label="E"];
+  c5->cF
+  c5->cR
+  c4->cI
+  c3->cN
+  c2->cG
+  c1->cE
+
+
+  dF[label="F"];
+  dR[label="R"];
+  dI[label="I"];
+  dN[label="N"];
+  dG[label="G"];
+  dE[label="E"];
+
+  d6->dF;
+  d4->dR;
+  d2->dI;
+  d3->dE;
+  d5->dG;
+  d7->dN;
+}

@@ -1,3 +1,6 @@
+# Copyright (c) 2013, Aldrin's Notebook.
+# http://opensource.org/licenses/BSD-2-Clause
+
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_BUILD_TYPE "Debug")
 project(web)
@@ -34,10 +37,13 @@ macro(enable_boost_libraries)
   find_package(Boost REQUIRED COMPONENTS ${ARGV})
   include_directories(${Boost_INCLUDE_DIRS})
   if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(Boost_LIBRARIES "${Boost_LIBRARIES} -lrt")
+    list(APPEND Boost_LIBRARIES "-lrt")
   endif()
 endmacro()
 
+include_directories(${CMAKE_SOURCE_DIR})
+
 enable_testing()
+add_subdirectory(misc)
+add_subdirectory(boost)
 add_subdirectory(crypto)
-add_subdirectory(executor)
