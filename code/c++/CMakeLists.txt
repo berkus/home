@@ -1,3 +1,6 @@
+# Copyright (c) 2013, Aldrin's Notebook.
+# http://opensource.org/licenses/BSD-2-Clause
+
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_BUILD_TYPE "Debug")
 project(web)
@@ -44,4 +47,3 @@ enable_testing()
 add_subdirectory(misc)
 add_subdirectory(boost)
 add_subdirectory(crypto)
-add_subdirectory(executor)
