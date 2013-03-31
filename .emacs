@@ -51,10 +51,6 @@
 (setq ring-bell-function (lambda nil (message "*fish*")))
 (setq my-elisp-dir (format "%s/%s" (file-name-directory load-file-name) ".elisp"))
 
-;; load-path
-;; disabled now. using emacs-24 package elpa.
-;(setq load-path (cons my-elisp-dir load-path))
-
 ;;load extra packages
 (when (>= emacs-major-version 24)
   (require 'package)
