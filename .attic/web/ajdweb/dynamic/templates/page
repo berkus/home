@@ -1,7 +1,0 @@
-{# -*- mode: jinja -*- #}
-{% extends "base" %}
-{% block content %}
-   <article class="sixteen columns">
-     {{ content }} 
-   </article>
-{% endblock %}

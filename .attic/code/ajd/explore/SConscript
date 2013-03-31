@@ -1,3 +1,0 @@
-from buildEnvironment import BuildEnvironment
-build = BuildEnvironment("explore")
-tests = build.UnitTests()

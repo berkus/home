@@ -1,8 +1,0 @@
-Page with No Content
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce leo dolor, volutpat sed iaculis et,
-euismod at velit. Morbi accumsan sagittis lectus ac tincidunt. Vestibulum a adipiscing
-leo. Suspendisse molestie orci a eros gravida condimentum. Duis non lacus eu ante facilisis
-dapibus. Morbi vel enim leo, sit amet rutrum velit. Etiam ac turpis eros, ac iaculis risus. Nam
-interdum adipiscing dui vitae dignissim.
-
