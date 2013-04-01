@@ -13,6 +13,10 @@
 #include <boost/utility.hpp>
 #include <boost/asio/buffer.hpp>
 
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
+#error OpenSSL 1.0.0 or later is required for PKCS5_PBKDF2_HMAC and EVP aes-128-gcm functions.
+#endif
+
 namespace ajd
 {
   namespace crypto
